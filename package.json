@@ -1,0 +1,20 @@
+{
+  "name": "pdks-extension",
+  "version": "1.1.0",
+  "private": true,
+  "scripts": {
+    "test": "jest",
+    "icons": "node icons/generate.js"
+  },
+  "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "jest": "^29.7.0",
+    "sharp": "^0.34.5"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ]
+  }
+}

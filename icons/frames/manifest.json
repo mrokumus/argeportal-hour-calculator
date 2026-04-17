@@ -1,0 +1,101 @@
+{
+  "frames": [
+    {
+      "file": "icons/frames/frame000.png",
+      "delay": 30
+    },
+    {
+      "file": "icons/frames/frame003.png",
+      "delay": 30
+    },
+    {
+      "file": "icons/frames/frame006.png",
+      "delay": 30
+    },
+    {
+      "file": "icons/frames/frame009.png",
+      "delay": 30
+    },
+    {
+      "file": "icons/frames/frame012.png",
+      "delay": 30
+    },
+    {
+      "file": "icons/frames/frame015.png",
+      "delay": 30
+    },
+    {
+      "file": "icons/frames/frame018.png",
+      "delay": 30
+    },
+    {
+      "file": "icons/frames/frame021.png",
+      "delay": 30
+    },
+    {
+      "file": "icons/frames/frame024.png",
+      "delay": 30
+    },
+    {
+      "file": "icons/frames/frame027.png",
+      "delay": 30
+    },
+    {
+      "file": "icons/frames/frame030.png",
+      "delay": 30
+    },
+    {
+      "file": "icons/frames/frame033.png",
+      "delay": 30
+    },
+    {
+      "file": "icons/frames/frame036.png",
+      "delay": 30
+    },
+    {
+      "file": "icons/frames/frame039.png",
+      "delay": 30
+    },
+    {
+      "file": "icons/frames/frame042.png",
+      "delay": 30
+    },
+    {
+      "file": "icons/frames/frame045.png",
+      "delay": 30
+    },
+    {
+      "file": "icons/frames/frame048.png",
+      "delay": 30
+    },
+    {
+      "file": "icons/frames/frame051.png",
+      "delay": 30
+    },
+    {
+      "file": "icons/frames/frame054.png",
+      "delay": 30
+    },
+    {
+      "file": "icons/frames/frame057.png",
+      "delay": 30
+    },
+    {
+      "file": "icons/frames/frame060.png",
+      "delay": 30
+    },
+    {
+      "file": "icons/frames/frame063.png",
+      "delay": 30
+    },
+    {
+      "file": "icons/frames/frame066.png",
+      "delay": 30
+    },
+    {
+      "file": "icons/frames/frame069.png",
+      "delay": 30
+    }
+  ],
+  "size": 32
+}
