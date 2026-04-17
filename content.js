@@ -142,7 +142,7 @@
       }
 
       // ── Leave / OOO helpers ─────────────────────────────────────
-      const GITHUB_REPO = 'rasitokumus/pdks-extension';
+      const GITHUB_REPO = 'mrokumus/argeportal-hour-calculator';
 
       function getWeekKey(offset) {
         const d = getMondayOfWeek(offset);
