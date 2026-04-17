@@ -114,12 +114,6 @@
         return calculateTime(remaining);
       }
 
-      function calculateRemainingX(time, x, weekTarget = 45) {
-        let [hour, min] = calculateRemaining(time, true, weekTarget);
-        hour = hour - x;
-        if (hour < 0) return [0, 0];
-        return [hour, min];
-      }
 
       function timeNormalize(value) {
         let [date, time] = value.split(/[ \n]/);
@@ -482,9 +476,9 @@
             addRow('Bu Hafta Kalan', rwth === 0 && rwtm === 0 ? '✅ Tamam' : `${rwth} sa ${rwtm} dk`,
               { cls: 'week-remaining', color: rwth === 0 && rwtm === 0 ? '#10b981' : '#f59e0b' });
 
-            const [r36h, r36m] = calculateRemainingX(wTotalH, Math.max(0, weekTargetH - 36), weekTargetH);
-            const [r27h, r27m] = calculateRemainingX(wTotalH, Math.max(0, weekTargetH - 27), weekTargetH);
-            const [r18h, r18m] = calculateRemainingX(wTotalH, Math.max(0, weekTargetH - 18), weekTargetH);
+            const [r36h, r36m] = calculateRemaining(wTotalH, true, 36);
+            const [r27h, r27m] = calculateRemaining(wTotalH, true, 27);
+            const [r18h, r18m] = calculateRemaining(wTotalH, true, 18);
             if (r36h || r36m) addRow('36 saat için', `${r36h} sa ${r36m} dk`, { small: true });
             if (r27h || r27m) addRow('27 saat için', `${r27h} sa ${r27m} dk`, { small: true });
             if (r18h || r18m) addRow('18 saat için', `${r18h} sa ${r18m} dk`, { small: true });
