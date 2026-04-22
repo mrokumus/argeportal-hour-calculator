@@ -1,5 +1,5 @@
 (function () {
-  const version = '1.2.0';
+  const version = '1.2.1';
   const DAILY_MIN_HOURS = 5;
 
   // ── i18n — locales injected by background.js into window.__PDKS_LOCALES__ ──
