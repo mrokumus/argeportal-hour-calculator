@@ -463,6 +463,28 @@
         nav.appendChild(label);
         nav.appendChild(nextBtn);
         box.insertBefore(nav, box.querySelector('#pdks-stats'));
+
+        // Make the box draggable via the nav bar
+        nav.style.cursor = 'grab';
+        let isDragging = false, startX = 0, startY = 0, origLeft = 0, origTop = 0;
+        nav.addEventListener('mousedown', (e) => {
+          if (e.target === prevBtn || e.target === nextBtn) return;
+          isDragging = true;
+          startX = e.clientX;
+          startY = e.clientY;
+          origLeft = parseInt(box.style.left) || 0;
+          origTop = parseInt(box.style.top) || 0;
+          nav.style.cursor = 'grabbing';
+          e.preventDefault();
+        });
+        document.addEventListener('mousemove', (e) => {
+          if (!isDragging) return;
+          box.style.left = (origLeft + e.clientX - startX) + 'px';
+          box.style.top = (origTop + e.clientY - startY) + 'px';
+        });
+        document.addEventListener('mouseup', () => {
+          if (isDragging) { isDragging = false; nav.style.cursor = 'grab'; }
+        });
       }
 
       function updateWeekNav() {
