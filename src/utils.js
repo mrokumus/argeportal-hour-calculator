@@ -62,6 +62,27 @@ function formatOOO(minutes) {
   return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}`;
 }
 
+/**
+ * Count Mon–Fri days in [weekStart, weekEnd] that are on or after monthStart.
+ * Used to compute the weekly hour target for partial first weeks of a month.
+ * All parameters are plain Date objects (or anything with getTime / comparison support).
+ */
+function countValidWorkdays(weekStart, weekEnd, monthStart) {
+  let count = 0;
+  const d = new Date(weekStart);
+  d.setHours(0, 0, 0, 0);
+  const end = new Date(weekEnd);
+  end.setHours(23, 59, 59, 999);
+  const mStart = new Date(monthStart);
+  mStart.setHours(0, 0, 0, 0);
+  while (d <= end) {
+    const day = d.getDay();
+    if (day >= 1 && day <= 5 && d >= mStart) count++;
+    d.setDate(d.getDate() + 1);
+  }
+  return count;
+}
+
 if (typeof module !== 'undefined') {
   module.exports = {
     getMondayOfWeek,
@@ -73,5 +94,6 @@ if (typeof module !== 'undefined') {
     timeNormalize,
     parseOOO,
     formatOOO,
+    countValidWorkdays,
   };
 }

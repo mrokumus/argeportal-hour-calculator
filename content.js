@@ -150,6 +150,16 @@
         return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}`;
       }
 
+      // Mirrors src/utils.js — count Mon–Fri days in [weekStart,weekEnd] that are >= monthStart
+      function countValidWorkdays(weekStart, weekEnd, monthStart) {
+        let count = 0;
+        const d = new Date(weekStart); d.setHours(0, 0, 0, 0);
+        const end = new Date(weekEnd); end.setHours(23, 59, 59, 999);
+        const ms = new Date(monthStart); ms.setHours(0, 0, 0, 0);
+        while (d <= end) { const day = d.getDay(); if (day >= 1 && day <= 5 && d >= ms) count++; d.setDate(d.getDate() + 1); }
+        return count;
+      }
+
       // Aggregate multiple check-in/out rows into per-day minute totals
       function computeDailyTotals(rows) {
         const map = {};
@@ -168,6 +178,9 @@
         if (h > 0) return `${h} ${t('hours')} ${m} ${t('minutes')}`;
         return `${m} ${t('minutes')}`;
       }
+
+      // First day of the currently displayed month (always the real current month)
+      const monthStart = dayjs().startOf('month');
 
       // ── Leave / OOO helpers ─────────────────────────────────────
       const GITHUB_REPO = 'mrokumus/argeportal-hour-calculator';
@@ -394,7 +407,11 @@
         prevBtn.id = 'pdks-prev-btn';
         prevBtn.textContent = t('prevBtn');
         prevBtn.setAttribute('style', btnStyle);
-        prevBtn.onclick = () => { weekOffset--; app(); };
+        prevBtn.onclick = () => {
+          // Allow going back only if the resulting week's Sunday is still within the current month
+          const prevSunday = dayjs(getSundayOfWeek(weekOffset - 1));
+          if (!prevSunday.isBefore(monthStart, 'day')) { weekOffset--; app(); }
+        };
 
         const nextBtn = document.createElement('button');
         nextBtn.id = 'pdks-next-btn';
@@ -422,6 +439,11 @@
         if (label) label.textContent = text;
         const nextBtn = document.querySelector('#pdks-next-btn');
         if (nextBtn) nextBtn.style.visibility = weekOffset >= 0 ? 'hidden' : 'visible';
+        const prevBtn2 = document.querySelector('#pdks-prev-btn');
+        if (prevBtn2) {
+          const prevSunday = dayjs(getSundayOfWeek(weekOffset - 1));
+          prevBtn2.style.visibility = prevSunday.isBefore(monthStart, 'day') ? 'hidden' : 'visible';
+        }
       }
 
       function app() {
@@ -439,10 +461,14 @@
         // Compute per-day totals (aggregates multiple check-in/out rows for the same day)
         const dailyTotals = computeDailyTotals(monthlyList);
 
-        // ── Auto-detect leave days: past weekdays with < DAILY_MIN_HOURS total ──
+        // Count Mon–Fri days that belong to the current month (handles partial first week).
+        const validWorkdays = countValidWorkdays(weekStart.toDate(), weekEnd.toDate(), monthStart.toDate());
+
+        // ── Auto-detect leave days: past weekdays within current month with < DAILY_MIN_HOURS ──
         if (leaveData.autoDetected !== false) {
           let autoLeave = 0;
           for (let c = weekStart; !c.isAfter(weekEnd, 'day'); c = c.add(1, 'day')) {
+            if (c.isBefore(monthStart, 'day')) continue; // skip previous month days
             if (c.day() >= 1 && c.day() <= 5 && c.isBefore(today, 'day')) {
               const totalMins = dailyTotals[c.format('YYYY-MM-DD')] || 0;
               if (totalMins / 60 < DAILY_MIN_HOURS) autoLeave++;
@@ -454,7 +480,8 @@
           }
         }
 
-        const weekTargetH = 45 - leaveData.leave * 9 + leaveData.ooo / 60;
+        // Target is based on valid workdays in this month's portion of the week (e.g. 3×9=27h for a partial week)
+        const weekTargetH = validWorkdays * 9 - leaveData.leave * 9 + leaveData.ooo / 60;
 
         let th = 0, tm = 0;
         let rh = weekTargetH, rm = 0;
@@ -488,6 +515,7 @@
           Object.entries(dailyTotals).forEach(([dateStr, totalMins]) => {
             const rowDay = dayjs(dateStr);
             if (rowDay.isBefore(weekStart, 'day') || rowDay.isAfter(weekEnd, 'day')) return;
+            if (rowDay.isBefore(monthStart, 'day')) return; // skip previous month days
             if (isCurrentWeek && today.isSame(rowDay, 'day')) return;
 
             if (totalMins / 60 < DAILY_MIN_HOURS) {
