@@ -1,4 +1,7 @@
 (function () {
+  if (window.__PDKS_RUNNING__) return;
+  window.__PDKS_RUNNING__ = true;
+
   const version = '1.2.1';
   const DAILY_MIN_HOURS = 5;
 
@@ -134,6 +137,7 @@
 
       // week offset: 0 = this week, -1 = last week, -2 = two weeks ago ...
       let weekOffset = 0;
+      let isLoading = false;
 
       function getMondayOfWeek(offset) {
         const d = new Date();
@@ -413,12 +417,14 @@
         });
 
         section.querySelector('#pdks-leave')?.addEventListener('change', () => {
+          if (isLoading) return;
           saveLeaveData(weekKey, { ...getInputValues(), autoDetected: false });
           document.querySelectorAll('#pdks-stats .script-input').forEach(el => el.remove());
           app();
         });
 
         section.querySelector('#pdks-ooo')?.addEventListener('change', () => {
+          if (isLoading) return;
           saveLeaveData(weekKey, { ...getInputValues(), autoDetected: getLeaveData(weekKey).autoDetected });
           document.querySelectorAll('#pdks-stats .script-input').forEach(el => el.remove());
           app();
@@ -448,6 +454,7 @@
         prevBtn.textContent = t('prevBtn');
         prevBtn.setAttribute('style', btnStyle);
         prevBtn.onclick = () => {
+          if (isLoading) return;
           // Allow going back only if the resulting week's Sunday is still within the current month
           const prevSunday = dayjs(getSundayOfWeek(weekOffset - 1));
           if (!prevSunday.isBefore(monthStart, 'day')) { weekOffset--; app(); }
@@ -457,7 +464,7 @@
         nextBtn.id = 'pdks-next-btn';
         nextBtn.textContent = t('nextBtn');
         nextBtn.setAttribute('style', btnStyle);
-        nextBtn.onclick = () => { if (weekOffset < 0) { weekOffset++; app(); } };
+        nextBtn.onclick = () => { if (isLoading) return; if (weekOffset < 0) { weekOffset++; app(); } };
 
         nav.appendChild(prevBtn);
         nav.appendChild(label);
@@ -508,7 +515,23 @@
         }
       }
 
+      function setNavDisabled(disabled) {
+        const disabledStyle = 'cursor:not-allowed;background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.3);border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:4px 12px;font-size:12px;font-family:inherit;';
+        const enabledStyle = 'cursor:pointer;background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.18);border-radius:6px;padding:4px 12px;font-size:12px;font-family:inherit;';
+        ['pdks-prev-btn', 'pdks-next-btn'].forEach(id => {
+          const btn = document.querySelector(`#${id}`);
+          if (btn) btn.setAttribute('style', disabled ? disabledStyle : enabledStyle);
+        });
+        ['pdks-leave', 'pdks-ooo'].forEach(id => {
+          const el = document.querySelector(`#${id}`);
+          if (el) el.disabled = disabled;
+        });
+      }
+
       function app() {
+        if (isLoading) return;
+        isLoading = true;
+        setNavDisabled(true);
         const today = dayjs();
         document.querySelectorAll('#pdks-stats .script-input').forEach(el => el.remove());
 
@@ -518,6 +541,12 @@
         const weekKey = getWeekKey(weekOffset);
         const leaveData = getLeaveData(weekKey);
         const [tableOne, tableTwo] = document.querySelectorAll('div.flexgrid');
+        if (!tableOne || !tableTwo) {
+          addWarning(t('selectMonthFirst'));
+          isLoading = false;
+          setNavDisabled(false);
+          return;
+        }
         const monthlyList = tableTwo.querySelectorAll('tbody > tr');
 
         // Compute per-day totals (aggregates multiple check-in/out rows for the same day)
@@ -668,6 +697,8 @@
 
         addLeaveInputs(weekKey);
         updateWeekNav();
+        isLoading = false;
+        setNavDisabled(false);
       }
 
       addNoticeBox();
@@ -678,7 +709,8 @@
   }
 
   if (document.querySelector('#grid_kesin_giris_cikis')) {
-    runApp(true);
+    showLoading();
+    runApp(false);
   } else {
     showLoading();
     openPdksPanel(runApp);

@@ -36,5 +36,6 @@
   "todayCapNote": "⚠️ Haftalık toplamda 11 saat sayılacak",
   "pdksMissing": "PDKS menüsü bulunamadı. Portal'a giriş yaptığınızdan emin olun.",
   "pdksCardMissing": "\"PDKS Giriş-Çıkış Bilgileri Kartı\" menüsü bulunamadı. Manuel olarak açın.",
-  "panelFailed": "Panel yüklenemedi. Lütfen manuel olarak açıp tekrar deneyin."
+  "panelFailed": "Panel yüklenemedi. Lütfen manuel olarak açıp tekrar deneyin.",
+  "selectMonthFirst": "İstatistikleri görmek için Dönem açılır menüsünden bir ay seçin."
 }

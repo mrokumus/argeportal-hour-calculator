@@ -33,9 +33,13 @@ window.__PDKS_LOCALES__ = {
     "upToDate": "✅ Up to date",
     "updateAvailable": "🔴 v{v} available",
     "shortDayWarning": "⚠️ {d}: Only {h}h {m}m worked (< 5h) — treated as leave",
+    "loading": "Loading PDKS data…",
+    "todayOvertime": "Working extra today",
+    "todayCapNote": "⚠️ Capped at 11h for weekly total",
     "pdksMissing": "PDKS menu not found. Make sure you're logged into the portal.",
     "pdksCardMissing": "\"PDKS Entry-Exit Info Card\" menu not found. Please open it manually.",
-    "panelFailed": "Panel could not be loaded. Please open it manually and try again."
+    "panelFailed": "Panel could not be loaded. Please open it manually and try again.",
+    "selectMonthFirst": "Please select a month from the Dönem dropdown to see your stats."
   },
   "tr": {
     "hours": "sa",
@@ -70,8 +74,12 @@ window.__PDKS_LOCALES__ = {
     "upToDate": "✅ Güncel",
     "updateAvailable": "🔴 v{v} mevcut",
     "shortDayWarning": "⚠️ {d}: Sadece {h} sa {m} dk çalışıldı (< 5 sa) — izin sayıldı",
+    "loading": "PDKS verisi yükleniyor…",
+    "todayOvertime": "Bugün fazla çalışıyorsunuz",
+    "todayCapNote": "⚠️ Haftalık toplamda 11 saat sayılacak",
     "pdksMissing": "PDKS menüsü bulunamadı. Portal'a giriş yaptığınızdan emin olun.",
     "pdksCardMissing": "\"PDKS Giriş-Çıkış Bilgileri Kartı\" menüsü bulunamadı. Manuel olarak açın.",
-    "panelFailed": "Panel yüklenemedi. Lütfen manuel olarak açıp tekrar deneyin."
+    "panelFailed": "Panel yüklenemedi. Lütfen manuel olarak açıp tekrar deneyin.",
+    "selectMonthFirst": "İstatistikleri görmek için Dönem açılır menüsünden bir ay seçin."
   }
 };
