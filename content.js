@@ -2,7 +2,7 @@
   if (window.__PDKS_RUNNING__) return;
   window.__PDKS_RUNNING__ = true;
 
-  const version = '1.2.1';
+  const version = '1.2.2';
   const DAILY_MIN_HOURS = 5;
 
   // ── i18n — locales injected by background.js into window.__PDKS_LOCALES__ ──

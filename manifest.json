@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "PDKS Time Calculator",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Shows working hours summary on PDKS Giriş Çıkış Bilgileri panel",
   "permissions": [
     "activeTab",
