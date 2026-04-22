@@ -1,5 +1,17 @@
 (function () {
-  const version = '1.1.0';
+  const version = '1.2.0';
+  const DAILY_MIN_HOURS = 5;
+
+  // ── i18n — locales injected by background.js into window.__PDKS_LOCALES__ ──
+  const langKey = (navigator.language || 'en').toLowerCase().startsWith('tr') ? 'tr' : 'en';
+  const _locales = window.__PDKS_LOCALES__ ?? {};
+  const _strings = { ...(_locales.en ?? {}), ...(_locales[langKey] ?? {}) };
+
+  // t(key, params?) — looks up key, falls back to en, replaces {placeholder}s
+  function t(key, params = {}) {
+    const template = _strings[key] ?? key;
+    return template.replace(/\{(\w+)\}/g, (_, k) => (k in params ? params[k] : `{${k}}`));
+  }
 
   function ensureCurrentMonthSelected(callback) {
     const monthSelect = document.querySelector('select#Donem_Id');
@@ -27,50 +39,48 @@
   }
 
   function openPdksPanel(onReady) {
-    console.log('[PDKS] openPdksPanel başladı');
+    console.log('[PDKS] openPdksPanel started');
 
-    // HTML yapısı: li.sub_folder > a > span.folder-item-parent "PDKS"
     const pdksFolderA = Array.from(document.querySelectorAll('li.sub_folder > a'))
       .find(a => a.textContent.includes('PDKS'));
 
     if (!pdksFolderA) {
-      console.error('[PDKS] li.sub_folder > a[PDKS] bulunamadı');
-      alert("PDKS menüsü bulunamadı. Portal'a giriş yaptığınızdan emin olun.");
+      console.error('[PDKS] li.sub_folder > a[PDKS] not found');
+      alert(t('pdksMissing'));
       return;
     }
 
-    console.log('[PDKS] PDKS folder A bulundu, tıklanıyor');
+    console.log('[PDKS] PDKS folder found, clicking');
     pdksFolderA.click();
 
     setTimeout(() => {
-      // HTML yapısı: ul#menu-folder-28 > li.EndLineMenu > a "PDKS Giriş-Çıkış Bilgileri Kartı"
       const pdksUl = document.querySelector('ul#menu-folder-28');
       const kartA = pdksUl
         ? Array.from(pdksUl.querySelectorAll('li.EndLineMenu > a'))
             .find(a => a.textContent.includes('Giriş-Çıkış'))
         : null;
 
-      console.log('[PDKS] #menu-folder-28:', !!pdksUl, '| Kart A:', !!kartA, kartA?.textContent.trim());
+      console.log('[PDKS] #menu-folder-28:', !!pdksUl, '| Card A:', !!kartA, kartA?.textContent.trim());
 
       if (!kartA) {
-        alert('"PDKS Giriş-Çıkış Bilgileri Kartı" menüsü bulunamadı. Manuel olarak açın.');
+        alert(t('pdksCardMissing'));
         return;
       }
 
       kartA.click();
-      console.log('[PDKS] Kart A tıklandı, panel bekleniyor...');
+      console.log('[PDKS] Card clicked, waiting for panel...');
 
       let attempts = 0;
       const poll = setInterval(() => {
         attempts++;
         if (document.querySelector('#grid_kesin_giris_cikis')) {
           clearInterval(poll);
-          console.log('[PDKS] Panel yüklendi!');
+          console.log('[PDKS] Panel loaded!');
           setTimeout(onReady, 700);
         } else if (attempts > 25) {
           clearInterval(poll);
-          console.error('[PDKS] Panel yüklenemedi (25 deneme)');
-          alert('Panel yüklenemedi. Lütfen manuel olarak açıp tekrar deneyin.');
+          console.error('[PDKS] Panel failed to load (25 attempts)');
+          alert(t('panelFailed'));
         }
       }, 300);
     }, 500);
@@ -114,7 +124,6 @@
         return calculateTime(remaining);
       }
 
-
       function timeNormalize(value) {
         let [date, time] = value.split(/[ \n]/);
         date = date.split('.').reverse().join('-');
@@ -139,6 +148,25 @@
       function formatOOO(minutes) {
         if (!minutes) return '0:00';
         return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}`;
+      }
+
+      // Aggregate multiple check-in/out rows into per-day minute totals
+      function computeDailyTotals(rows) {
+        const map = {};
+        rows.forEach(row => {
+          try {
+            const [dateStr] = timeNormalize(row.querySelector('td:nth-child(3)').innerText);
+            const [wh, wm] = row.querySelector('td:nth-child(6)').innerText.split(':');
+            const mins = (parseInt(wh) || 0) * 60 + (parseInt(wm) || 0);
+            map[dateStr] = (map[dateStr] || 0) + mins;
+          } catch {}
+        });
+        return map;
+      }
+
+      function formatDuration(h, m) {
+        if (h > 0) return `${h} ${t('hours')} ${m} ${t('minutes')}`;
+        return `${m} ${t('minutes')}`;
       }
 
       // ── Leave / OOO helpers ─────────────────────────────────────
@@ -184,12 +212,10 @@
           overflow: 'hidden',
         });
 
-        // stats container (cleared & re-filled on each app() call)
         const stats = document.createElement('div');
         stats.id = 'pdks-stats';
         box.appendChild(stats);
 
-        // version footer (created once, never cleared)
         const footer = document.createElement('div');
         footer.id = 'pdks-footer';
         Object.assign(footer.style, {
@@ -208,7 +234,7 @@
         updateLink.id = 'pdks-update-link';
         updateLink.href = `https://github.com/${GITHUB_REPO}/releases`;
         updateLink.target = '_blank';
-        updateLink.textContent = 'Kontrol ediliyor…';
+        updateLink.textContent = t('checking');
         Object.assign(updateLink.style, { color: '#bbb', fontSize: '11px', textDecoration: 'none' });
 
         footer.appendChild(verSpan);
@@ -219,14 +245,14 @@
         fetchLatestVersion().then(latest => {
           const el = document.querySelector('#pdks-update-link');
           if (!el) return;
-          if (!latest) { el.textContent = 'Releases ↗'; return; }
+          if (!latest) { el.textContent = t('releases'); return; }
           if (latest === version) {
-            el.textContent = '✅ Güncel';
+            el.textContent = t('upToDate');
             el.style.color = '#10b981';
             el.removeAttribute('href');
             el.style.cursor = 'default';
           } else {
-            el.textContent = `🔴 v${latest} mevcut`;
+            el.textContent = t('updateAvailable', { v: latest });
             el.style.color = '#ef4444';
             el.href = `https://github.com/${GITHUB_REPO}/releases`;
           }
@@ -258,6 +284,23 @@
         stats.appendChild(d);
       }
 
+      function addWarning(text) {
+        const stats = document.querySelector('#pdks-stats');
+        const el = document.createElement('div');
+        el.className = 'script-input';
+        Object.assign(el.style, {
+          padding: '5px 12px 5px 10px',
+          fontSize: '11px',
+          color: '#92400e',
+          backgroundColor: '#fffbeb',
+          borderLeft: '3px solid #f59e0b',
+          margin: '2px 0',
+          lineHeight: '1.4',
+        });
+        el.textContent = text;
+        stats.appendChild(el);
+      }
+
       function addProgressBar(pct, targetH) {
         const stats = document.querySelector('#pdks-stats');
         const p = Math.min(100, Math.round(pct));
@@ -271,7 +314,7 @@
           </div>
           <div style="display:flex;justify-content:space-between;margin-top:2px;">
             <span style="font-size:10px;color:#bbb;">0</span>
-            <span style="font-size:10px;color:#bbb;">${p}% / ${parseFloat(targetH.toFixed(2))}s</span>
+            <span style="font-size:10px;color:#bbb;">${p}% / ${parseFloat(targetH.toFixed(2))}${t('hoursUnit')}</span>
           </div>
         `;
         stats.appendChild(wrap);
@@ -292,16 +335,14 @@
         const iStyle = 'text-align:center;border:1px solid #e0e0e0;border-radius:5px;padding:2px 5px;font-size:12px;font-family:inherit;outline:none;';
         section.innerHTML = `
           <div style="display:flex;align-items:center;gap:5px;">
-            <span style="font-size:12px;color:#999;">🏖️ İzin</span>
+            <span style="font-size:12px;color:#999;">${t('leaveLabel')}</span>
             <input id="pdks-leave" type="number" min="0" max="5" value="${data.leave}" style="width:34px;${iStyle}">
-            <span style="font-size:11px;color:#bbb;">gün</span>
+            <span style="font-size:11px;color:#bbb;">${t('leaveDays')}</span>
           </div>
           <div style="display:flex;align-items:center;gap:5px;position:relative;">
-            <span id="pdks-ooo-label" style="font-size:12px;color:#999;cursor:help;border-bottom:1px dashed #ccc;">🏠 OOO</span>
+            <span id="pdks-ooo-label" style="font-size:12px;color:#999;cursor:help;border-bottom:1px dashed #ccc;">${t('oooLabel')}</span>
             <div id="pdks-ooo-tip" style="display:none;position:absolute;bottom:calc(100% + 6px);left:0;background:#222;color:#fff;padding:7px 10px;border-radius:8px;font-size:11px;line-height:1.5;white-space:nowrap;z-index:99999;pointer-events:none;">
-              <strong>Out of Office</strong> — ofis dışında geçirilen süre.<br>
-              PDKS'e yansımaz, 45s hedefe <strong>eklenir</strong>.<br>
-              Format: <code style="background:#444;padding:1px 4px;border-radius:3px;">SS:DD</code> (ör. 1:30)
+              ${t('oooTooltip')}
             </div>
             <input id="pdks-ooo" type="text" placeholder="0:00" value="${formatOOO(data.ooo)}" style="width:42px;${iStyle}">
           </div>
@@ -319,14 +360,12 @@
         });
 
         section.querySelector('#pdks-leave')?.addEventListener('change', () => {
-          // User manually changed leave → disable auto-detection
           saveLeaveData(weekKey, { ...getInputValues(), autoDetected: false });
           document.querySelectorAll('#pdks-stats .script-input').forEach(el => el.remove());
           app();
         });
 
         section.querySelector('#pdks-ooo')?.addEventListener('change', () => {
-          // OOO change preserves auto-detection state
           saveLeaveData(weekKey, { ...getInputValues(), autoDetected: getLeaveData(weekKey).autoDetected });
           document.querySelectorAll('#pdks-stats .script-input').forEach(el => el.remove());
           app();
@@ -353,13 +392,13 @@
 
         const prevBtn = document.createElement('button');
         prevBtn.id = 'pdks-prev-btn';
-        prevBtn.textContent = '◀ Önceki';
+        prevBtn.textContent = t('prevBtn');
         prevBtn.setAttribute('style', btnStyle);
         prevBtn.onclick = () => { weekOffset--; app(); };
 
         const nextBtn = document.createElement('button');
         nextBtn.id = 'pdks-next-btn';
-        nextBtn.textContent = 'Sonraki ▶';
+        nextBtn.textContent = t('nextBtn');
         nextBtn.setAttribute('style', btnStyle);
         nextBtn.onclick = () => { if (weekOffset < 0) { weekOffset++; app(); } };
 
@@ -373,11 +412,12 @@
         const monday = getMondayOfWeek(weekOffset);
         const sunday = getSundayOfWeek(weekOffset);
         const fmt = (d) => `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const range = `${fmt(monday)}-${fmt(sunday)}`;
         const text = weekOffset === 0
-          ? `Bu Hafta  ${fmt(monday)}-${fmt(sunday)}`
+          ? t('thisWeekNav', { r: range })
           : weekOffset === -1
-            ? `Geçen Hafta  ${fmt(monday)}-${fmt(sunday)}`
-            : `${Math.abs(weekOffset)} Hafta Önce  ${fmt(monday)}-${fmt(sunday)}`;
+            ? t('lastWeekNav', { r: range })
+            : t('weeksAgoNav', { n: Math.abs(weekOffset), r: range });
         const label = document.querySelector('#pdks-week-label');
         if (label) label.textContent = text;
         const nextBtn = document.querySelector('#pdks-next-btn');
@@ -396,22 +436,17 @@
         const [tableOne, tableTwo] = document.querySelectorAll('div.flexgrid');
         const monthlyList = tableTwo.querySelectorAll('tbody > tr');
 
-        // ── Auto-detect leave days: past weekdays with zero recorded hours ──
+        // Compute per-day totals (aggregates multiple check-in/out rows for the same day)
+        const dailyTotals = computeDailyTotals(monthlyList);
+
+        // ── Auto-detect leave days: past weekdays with < DAILY_MIN_HOURS total ──
         if (leaveData.autoDetected !== false) {
-          const datesWithHours = new Set();
-          monthlyList.forEach(row => {
-            try {
-              const [rowDate] = timeNormalize(row.querySelector('td:nth-child(3)').innerText);
-              const rowDay = dayjs(rowDate);
-              if (rowDay.isBefore(weekStart, 'day') || rowDay.isAfter(weekEnd, 'day')) return;
-              const [wh, wm] = row.querySelector('td:nth-child(6)').innerText.split(':');
-              if ((parseInt(wh) || 0) > 0 || (parseInt(wm) || 0) > 0) datesWithHours.add(rowDate);
-            } catch {}
-          });
           let autoLeave = 0;
           for (let c = weekStart; !c.isAfter(weekEnd, 'day'); c = c.add(1, 'day')) {
-            if (c.day() >= 1 && c.day() <= 5 && c.isBefore(today, 'day'))
-              if (!datesWithHours.has(c.format('YYYY-MM-DD'))) autoLeave++;
+            if (c.day() >= 1 && c.day() <= 5 && c.isBefore(today, 'day')) {
+              const totalMins = dailyTotals[c.format('YYYY-MM-DD')] || 0;
+              if (totalMins / 60 < DAILY_MIN_HOURS) autoLeave++;
+            }
           }
           if (autoLeave !== leaveData.leave) {
             leaveData.leave = autoLeave;
@@ -440,24 +475,28 @@
             const diff = today.diff(firstRecord, 'hour', true);
             [th, tm] = calculateTime(diff);
             [rh, rm] = calculateRemaining(diff, false, 9);
-            addRow('Bugün', th > 0 ? `${th} sa ${tm} dk` : `${tm} dk`);
-            addRow('Bugün Kalan', rh > 0 ? `${rh} sa ${rm} dk` : `${rm} dk`, { cls: 'today-remaining', color: '#f59e0b' });
+            addRow(t('today'), formatDuration(th, tm));
+            addRow(t('todayRemaining'), formatDuration(rh, rm), { cls: 'today-remaining', color: '#f59e0b' });
           }
         }
 
         // --- WEEK ---
         let weekTotalMin = 0;
+        const shortDays = []; // days with 0 < hours < DAILY_MIN_HOURS
 
-        if (monthlyList.length > 0) {
-          let inWeek = false;
-          monthlyList.forEach(row => {
-            const [rowDate] = timeNormalize(row.querySelector('td:nth-child(3)').innerText);
-            const rowDay = dayjs(rowDate);
-            if (!inWeek && (weekStart.isSame(rowDay, 'day') || weekStart.isBefore(rowDay, 'day'))) inWeek = true;
-            if (inWeek && rowDay.isAfter(weekEnd, 'day')) inWeek = false;
-            if (!inWeek || (isCurrentWeek && today.isSame(rowDay, 'day'))) return;
-            let [wh, wm] = row.querySelector('td:nth-child(6)').innerText.split(':');
-            [wh, wm] = capDailyHours(parseInt(wh), parseInt(wm));
+        if (Object.keys(dailyTotals).length > 0) {
+          Object.entries(dailyTotals).forEach(([dateStr, totalMins]) => {
+            const rowDay = dayjs(dateStr);
+            if (rowDay.isBefore(weekStart, 'day') || rowDay.isAfter(weekEnd, 'day')) return;
+            if (isCurrentWeek && today.isSame(rowDay, 'day')) return;
+
+            if (totalMins / 60 < DAILY_MIN_HOURS) {
+              if (totalMins > 0) shortDays.push({ date: dateStr, mins: totalMins });
+              return;
+            }
+
+            let [wh, wm] = [Math.floor(totalMins / 60), totalMins % 60];
+            [wh, wm] = capDailyHours(wh, wm);
             weekTotalMin += wh * 60 + wm;
           });
 
@@ -465,49 +504,62 @@
 
           if (isCurrentWeek) {
             addDivider();
-            addRow('Bu Hafta', `${wh} sa ${wm} dk`);
+            addRow(t('thisWeek'), formatDuration(wh, wm));
             const weekTotalWithTodayMin = weekTotalMin + th * 60 + tm;
             const wTotalH = weekTotalWithTodayMin / 60;
             const [wth, wtm] = calculateTime(wTotalH);
-            addRow('Bugün + Bu Hafta', `${wth} sa ${wtm} dk`);
+            addRow(t('todayPlusWeek'), formatDuration(wth, wtm));
             addProgressBar(wTotalH / weekTargetH * 100, weekTargetH);
 
             const [rwth, rwtm] = calculateRemaining(wTotalH, true, weekTargetH);
-            addRow('Bu Hafta Kalan', rwth === 0 && rwtm === 0 ? '✅ Tamam' : `${rwth} sa ${rwtm} dk`,
+            addRow(t('weekRemaining'),
+              rwth === 0 && rwtm === 0 ? t('done') : formatDuration(rwth, rwtm),
               { cls: 'week-remaining', color: rwth === 0 && rwtm === 0 ? '#10b981' : '#f59e0b' });
 
             const [r36h, r36m] = calculateRemaining(wTotalH, true, 36);
             const [r27h, r27m] = calculateRemaining(wTotalH, true, 27);
             const [r18h, r18m] = calculateRemaining(wTotalH, true, 18);
-            if (r36h || r36m) addRow('36 saat için', `${r36h} sa ${r36m} dk`, { small: true });
-            if (r27h || r27m) addRow('27 saat için', `${r27h} sa ${r27m} dk`, { small: true });
-            if (r18h || r18m) addRow('18 saat için', `${r18h} sa ${r18m} dk`, { small: true });
+            if (r36h || r36m) addRow(t('for36h'), formatDuration(r36h, r36m), { small: true });
+            if (r27h || r27m) addRow(t('for27h'), formatDuration(r27h, r27m), { small: true });
+            if (r18h || r18m) addRow(t('for18h'), formatDuration(r18h, r18m), { small: true });
 
             if (today.day() === 5 && rwth < 9) {
               document.querySelector('div.today-remaining')?.remove();
               rh = rwth; rm = rwtm;
             }
           } else {
-            addRow('Hafta Toplamı', `${wh} sa ${wm} dk`);
+            addRow(t('weekTotal'), formatDuration(wh, wm));
             const totalH = weekTotalMin / 60;
             addProgressBar(totalH / weekTargetH * 100, weekTargetH);
             const [rwth, rwtm] = calculateRemaining(totalH, true, weekTargetH);
             const done = rwth === 0 && rwtm === 0;
-            addRow(`Hedef (${weekTargetH} saat)`,
-              done ? '✅ Tamamlandı' : `❌ Eksik: ${rwth} sa ${rwtm} dk`,
+            addRow(t('target', { h: weekTargetH }),
+              done ? t('targetDone') : t('targetMissing', { h: rwth, m: rwtm }),
               { color: done ? '#10b981' : '#ef4444' });
           }
         }
 
-        // --- ÇIKIŞ SAATİ ---
+        // --- EXIT TIME ---
         if (isCurrentWeek && firstRecord) {
           addDivider();
           if (rh !== 0 || rm !== 0) {
             const lt = today.add(rh, 'h').add(rm, 'm');
-            addRow('Bugün Çıkış', `~ ${String(lt.hour()).padStart(2,'0')}:${String(lt.minute()).padStart(2,'0')}`);
+            addRow(t('exitTime'), `~ ${String(lt.hour()).padStart(2,'0')}:${String(lt.minute()).padStart(2,'0')}`);
           } else {
-            addRow('Bugün Çıkış', 'Çıkış Yapabilirsiniz! ✅', { color: '#10b981' });
+            addRow(t('exitTime'), t('canLeave'), { color: '#10b981' });
           }
+        }
+
+        // --- SHORT DAY WARNINGS ---
+        if (shortDays.length > 0) {
+          addDivider();
+          shortDays.forEach(({ date, mins }) => {
+            const h = Math.floor(mins / 60);
+            const m = mins % 60;
+            const parts = date.split('-');
+            const fmtDate = `${parts[2]}.${parts[1]}`;
+            addWarning(t('shortDayWarning', { d: fmtDate, h, m }));
+          });
         }
 
         addLeaveInputs(weekKey);
