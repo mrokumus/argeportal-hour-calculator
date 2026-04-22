@@ -31,6 +31,7 @@
   "upToDate": "✅ Güncel",
   "updateAvailable": "🔴 v{v} mevcut",
   "shortDayWarning": "⚠️ {d}: Sadece {h} sa {m} dk çalışıldı (< 5 sa) — izin sayıldı",
+  "loading": "PDKS verisi yükleniyor…",
   "pdksMissing": "PDKS menüsü bulunamadı. Portal'a giriş yaptığınızdan emin olun.",
   "pdksCardMissing": "\"PDKS Giriş-Çıkış Bilgileri Kartı\" menüsü bulunamadı. Manuel olarak açın.",
   "panelFailed": "Panel yüklenemedi. Lütfen manuel olarak açıp tekrar deneyin."

@@ -38,52 +38,92 @@
     callback();
   }
 
+  function showLoading() {
+    document.querySelector('#script-notice-box')?.remove();
+    const box = document.createElement('div');
+    box.id = 'script-notice-box';
+    Object.assign(box.style, {
+      width: '420px',
+      position: 'absolute',
+      left: '24px',
+      top: '618px',
+      zIndex: '9999',
+      backgroundColor: '#fff',
+      borderRadius: '14px',
+      boxShadow: '0 6px 28px rgba(0,0,0,0.14)',
+      fontFamily: 'system-ui,-apple-system,BlinkMacSystemFont,sans-serif',
+      overflow: 'hidden',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '10px',
+      padding: '20px 16px',
+      color: '#888',
+      fontSize: '13px',
+    });
+    box.innerHTML = `
+      <style>@keyframes pdks-spin{to{transform:rotate(360deg)}}</style>
+      <div style="width:15px;height:15px;border:2px solid #ddd;border-top-color:#111;border-radius:50%;animation:pdks-spin 0.7s linear infinite;flex-shrink:0;"></div>
+      <span>${t('loading')}</span>
+    `;
+    document.body.appendChild(box);
+  }
+
   function openPdksPanel(onReady) {
     console.log('[PDKS] openPdksPanel started');
 
-    const pdksFolderA = Array.from(document.querySelectorAll('li.sub_folder > a'))
-      .find(a => a.textContent.includes('PDKS'));
+    let menuAttempts = 0;
+    const waitForMenu = setInterval(() => {
+      menuAttempts++;
+      const pdksFolderA = Array.from(document.querySelectorAll('li.sub_folder > a'))
+        .find(a => a.textContent.includes('PDKS'));
 
-    if (!pdksFolderA) {
-      console.error('[PDKS] li.sub_folder > a[PDKS] not found');
-      alert(t('pdksMissing'));
-      return;
-    }
+      if (pdksFolderA) {
+        clearInterval(waitForMenu);
+        console.log('[PDKS] PDKS folder found, clicking');
+        pdksFolderA.click();
 
-    console.log('[PDKS] PDKS folder found, clicking');
-    pdksFolderA.click();
+        setTimeout(() => {
+          const pdksUl = document.querySelector('ul#menu-folder-28');
+          const kartA = pdksUl
+            ? Array.from(pdksUl.querySelectorAll('li.EndLineMenu > a'))
+                .find(a => a.textContent.includes('Giriş-Çıkış'))
+            : null;
 
-    setTimeout(() => {
-      const pdksUl = document.querySelector('ul#menu-folder-28');
-      const kartA = pdksUl
-        ? Array.from(pdksUl.querySelectorAll('li.EndLineMenu > a'))
-            .find(a => a.textContent.includes('Giriş-Çıkış'))
-        : null;
+          console.log('[PDKS] #menu-folder-28:', !!pdksUl, '| Card A:', !!kartA, kartA?.textContent.trim());
 
-      console.log('[PDKS] #menu-folder-28:', !!pdksUl, '| Card A:', !!kartA, kartA?.textContent.trim());
+          if (!kartA) {
+            document.querySelector('#script-notice-box')?.remove();
+            alert(t('pdksCardMissing'));
+            return;
+          }
 
-      if (!kartA) {
-        alert(t('pdksCardMissing'));
-        return;
+          kartA.click();
+          console.log('[PDKS] Card clicked, waiting for panel...');
+
+          let attempts = 0;
+          const poll = setInterval(() => {
+            attempts++;
+            if (document.querySelector('#grid_kesin_giris_cikis')) {
+              clearInterval(poll);
+              console.log('[PDKS] Panel loaded!');
+              setTimeout(onReady, 700);
+            } else if (attempts > 25) {
+              clearInterval(poll);
+              console.error('[PDKS] Panel failed to load (25 attempts)');
+              document.querySelector('#script-notice-box')?.remove();
+              alert(t('panelFailed'));
+            }
+          }, 300);
+        }, 500);
+
+      } else if (menuAttempts > 30) {
+        clearInterval(waitForMenu);
+        console.error('[PDKS] li.sub_folder > a[PDKS] not found after waiting');
+        document.querySelector('#script-notice-box')?.remove();
+        alert(t('pdksMissing'));
       }
-
-      kartA.click();
-      console.log('[PDKS] Card clicked, waiting for panel...');
-
-      let attempts = 0;
-      const poll = setInterval(() => {
-        attempts++;
-        if (document.querySelector('#grid_kesin_giris_cikis')) {
-          clearInterval(poll);
-          console.log('[PDKS] Panel loaded!');
-          setTimeout(onReady, 700);
-        } else if (attempts > 25) {
-          clearInterval(poll);
-          console.error('[PDKS] Panel failed to load (25 attempts)');
-          alert(t('panelFailed'));
-        }
-      }, 300);
-    }, 500);
+    }, 300);
   }
 
   function runApp(skipMonthSelect) {
@@ -611,6 +651,7 @@
   if (document.querySelector('#grid_kesin_giris_cikis')) {
     runApp(true);
   } else {
+    showLoading();
     openPdksPanel(runApp);
   }
 })();
