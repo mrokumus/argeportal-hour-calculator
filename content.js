@@ -704,6 +704,7 @@
       addNoticeBox();
       addWeekNav();
       app();
+      setInterval(() => { if (weekOffset === 0) app(); }, 60000);
     };
     if (skipMonthSelect) { doRun(); } else { ensureCurrentMonthSelected(doRun); }
   }
