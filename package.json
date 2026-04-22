@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "test": "jest",
-    "icons": "node icons/generate.js"
+    "icons": "node icons/generate.js",
+    "build-locales": "node scripts/build-locales.js"
   },
   "devDependencies": {
     "@resvg/resvg-js": "^2.6.2",

@@ -48,28 +48,16 @@ function stopAnimation() {
 }
 
 // ── Click handler ─────────────────────────────────────────────────────
-chrome.action.onClicked.addListener(async (tab) => {
+chrome.action.onClicked.addListener((tab) => {
   startAnimation();
 
-  try {
-    // Load both locale files from the extension package (reliable in service worker)
-    const [en, tr] = await Promise.all([
-      fetch(chrome.runtime.getURL('src/localization/en.json')).then(r => r.json()),
-      fetch(chrome.runtime.getURL('src/localization/tr.json')).then(r => r.json()),
-    ]);
-
-    // Inject locales into the isolated world before content.js runs
-    await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      func: (locales) => { window.__PDKS_LOCALES__ = locales; },
-      args: [{ en, tr }],
-    });
-
-    await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      files: ['content.js'],
-    });
-  } finally {
+  // locales.js sets window.__PDKS_LOCALES__ before content.js reads it
+  chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    files: ['src/localization/locales.js', 'content.js'],
+  }).then(() => {
     stopAnimation();
-  }
+  }).catch(() => {
+    stopAnimation();
+  });
 });
