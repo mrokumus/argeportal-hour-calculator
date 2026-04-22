@@ -544,6 +544,13 @@
             [rh, rm] = calculateRemaining(diff, false, 9);
             addRow(t('today'), formatDuration(th, tm));
             addRow(t('todayRemaining'), formatDuration(rh, rm), { cls: 'today-remaining', color: '#f59e0b' });
+            if (diff > 9) {
+              const [oh, om] = calculateTime(diff - 9);
+              addRow(t('todayOvertime'), `+${formatDuration(oh, om)}`, { small: true, color: '#6b7280' });
+            }
+            if (diff > 11) {
+              addRow(t('todayCapNote'), '11h', { small: true, color: '#ef4444' });
+            }
           }
         }
 

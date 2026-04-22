@@ -32,6 +32,8 @@
   "updateAvailable": "🔴 v{v} mevcut",
   "shortDayWarning": "⚠️ {d}: Sadece {h} sa {m} dk çalışıldı (< 5 sa) — izin sayıldı",
   "loading": "PDKS verisi yükleniyor…",
+  "todayOvertime": "Bugün fazla çalışıyorsunuz",
+  "todayCapNote": "⚠️ Haftalık toplamda 11 saat sayılacak",
   "pdksMissing": "PDKS menüsü bulunamadı. Portal'a giriş yaptığınızdan emin olun.",
   "pdksCardMissing": "\"PDKS Giriş-Çıkış Bilgileri Kartı\" menüsü bulunamadı. Manuel olarak açın.",
   "panelFailed": "Panel yüklenemedi. Lütfen manuel olarak açıp tekrar deneyin."

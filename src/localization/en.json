@@ -32,6 +32,8 @@
   "updateAvailable": "🔴 v{v} available",
   "shortDayWarning": "⚠️ {d}: Only {h}h {m}m worked (< 5h) — treated as leave",
   "loading": "Loading PDKS data…",
+  "todayOvertime": "Working extra today",
+  "todayCapNote": "⚠️ Capped at 11h for weekly total",
   "pdksMissing": "PDKS menu not found. Make sure you're logged into the portal.",
   "pdksCardMissing": "\"PDKS Entry-Exit Info Card\" menu not found. Please open it manually.",
   "panelFailed": "Panel could not be loaded. Please open it manually and try again."
