@@ -1,62 +1,139 @@
-# PDKS Saat Hesaplayıcı — Chrome/Arc Eklentisi
+# PDKS Time Calculator — Browser Extension
 
-**ARGEPORTAL** üzerindeki **PDKS Giriş-Çıkış Bilgileri Kartı** panelinde çalışma saatlerini doğrudan gösteren bir Chrome/Arc eklentisi.
+A browser extension for **Chrome** and **Firefox** that displays a working-hours summary directly on the **PDKS Giriş-Çıkış Bilgileri Kartı** panel inside ARGEPORTAL.
 
-> [ARGEPORTAL](https://sektorsoft.com/argeportal-teknopark-bilgi-yonetim-sistemi-yazilimi.html), teknopark yönetici şirketleri ve teknopark bünyesindeki girişimci firmalar için geliştirilmiş bir bilgi yönetim sistemidir. Bu eklenti yalnızca ARGEPORTAL kullanan firmalarda çalışır.
-
----
-
-## Özellikler
-
-- **Bugün** — İlk girişten itibaren çalışılan süre
-- **Bugün Kalan** — Günlük hedefe (9 saat) ulaşmak için kalan süre
-- **Bu Hafta** — Pazartesi'den itibaren tamamlanan günlerin toplam saati (bugün hariç)
-- **Bugün + Bu Hafta** — Anlık haftalık toplam
-- **Bu Hafta Kalan** — Haftalık hedefe ulaşmak için kalan süre
-- **36 / 27 / 18 saat hedefleri** — Farklı haftalık eşikler için kalan süreler
-- **Tahmini çıkış saati** — Bugün saat kaçta çıkabilirsin
-- **İzin günü otomatik tespiti** — Hafta içi hiç giriş yapılmayan günler otomatik olarak izinli sayılır
-- **OOO desteği** — Ofis dışında geçirilen süre haftalık hedefe eklenir
-- **Önceki haftalar** — Panel üzerinden geçmiş haftaları görüntüleyebilirsin
+> [ARGEPORTAL](https://sektorsoft.com/argeportal-teknopark-bilgi-yonetim-sistemi-yazilimi.html) is a management system used by technopark companies. This extension only works on ARGEPORTAL portals.
 
 ---
 
-## Kurulum
+## Features
 
-> Unpacked extension olarak yüklenir. Mağazada yer almaz.
-
-1. [Son sürümü indir](../../releases/latest) ve zip'i aç **ya da** bu repoyu klonla
-2. Tarayıcında `arc://extensions` veya `chrome://extensions` adresine git
-3. Sağ üst köşedeki **Geliştirici modu**'nu aç
-4. **"Paketlenmemiş öğe yükle"** butonuna tıkla
-5. `pdks-extension` klasörünü seç
-
-Eklenti simgesi araç çubuğunda görünecektir.
-
----
-
-## Kullanım
-
-1. **ARGEPORTAL**'a giriş yap
-2. Sol menüden **PDKS > PDKS Giriş-Çıkış Bilgileri Kartı**'na git
-3. Açılır menüden **mevcut ayın** seçili olduğundan emin ol
-4. Araç çubuğundaki kum saati ikonuna tıkla
-5. Sayfada özet kutusu belirecektir
-
-### İzin / OOO Girişi
-
-Panelin altındaki giriş alanlarından:
-
-- **İzin (gün):** Hafta içi hiç çalışılmayan günler otomatik doldurulur. Elle değiştirirsen otomatik güncelleme o hafta için devre dışı kalır.
-- **OOO (SS:DD):** Uzaktan ya da ofis dışı çalışılan süreyi gir (ör. `1:30`). Bu süre haftalık hedefe eklenir.
-
-### Önceki Haftalar
-
-Panel üst kısmındaki **◀ Önceki** / **Sonraki ▶** butonlarıyla geçmiş haftaları görüntüleyebilirsin.
+- **Today** — time worked since the first check-in of the day
+- **Today Remaining** — time left to reach the daily 9-hour target
+- **This Week** — total hours for completed days since Monday (excluding today)
+- **Today + This Week** — running weekly total
+- **Week Remaining** — time left to reach the weekly target
+- **36 / 27 / 18-hour thresholds** — remaining hours for alternative weekly targets
+- **Estimated exit time** — when you can leave today to hit the daily or weekly target
+- **Automatic leave detection** — weekdays with no check-in are treated as leave days
+- **OOO support** — out-of-office time is added to the weekly target
+- **Previous weeks** — navigate back through past weeks using the ◀ / ▶ buttons
 
 ---
 
-## Orijinal Proje
+## Installation
 
-Bu eklenti **burakdemirtas-jtf** tarafından geliştirilen bookmarklet'e dayanmaktadır:
+> The extension is loaded as an unpacked extension — it is not published to any store.
+
+### Chrome / Arc
+
+1. Download the latest `pdks-extension-x.x.x-chrome.zip` from [Releases](../../releases/latest) and unzip it
+2. Go to `chrome://extensions`
+3. Enable **Developer mode** (top-right toggle)
+4. Click **Load unpacked** and select the unzipped folder
+
+### Firefox
+
+1. Download the latest `pdks-extension-x.x.x-firefox.zip` from [Releases](../../releases/latest) and unzip it
+2. Go to `about:debugging#/runtime/this-firefox`
+3. Click **Load Temporary Add-on** and select any file inside the unzipped folder
+
+> Firefox temporary add-ons are removed when the browser restarts. For a permanent install the extension would need to be signed by Mozilla.
+
+---
+
+## Usage
+
+1. Log in to **ARGEPORTAL**
+2. Navigate to **PDKS > PDKS Giriş-Çıkış Bilgileri Kartı** in the left sidebar
+3. Make sure the **current month** is selected in the period dropdown
+4. Click the hourglass icon in the browser toolbar
+5. A summary panel will appear on the page
+
+### Leave / OOO inputs
+
+At the bottom of the panel:
+
+- **Leave (days):** weekdays with no check-in are filled in automatically. Editing manually disables auto-detection for that week.
+- **OOO (H:MM):** enter time worked outside the office (e.g. `1:30`). This is added to the weekly target.
+
+### Week navigation
+
+Use the **◀ Prev** / **Next ▶** buttons at the top of the panel to view previous weeks within the current month.
+
+---
+
+## Development
+
+### Requirements
+
+- Node.js 20+
+
+### Setup
+
+```bash
+npm install
+```
+
+### Commands
+
+| Command | Description |
+|---|---|
+| `npm run dev` | Start Chrome dev mode with hot reload |
+| `npm run dev:firefox` | Start Firefox dev mode |
+| `npm run build` | Production build for Chrome → `.output/chrome-mv3/` |
+| `npm run build:firefox` | Production build for Firefox → `.output/firefox-mv2/` |
+| `npm run zip` | Build + zip Chrome bundle → `.output/pdks-extension-x.x.x-chrome.zip` |
+| `npm run zip:firefox` | Build + zip Firefox bundle → `.output/pdks-extension-x.x.x-firefox.zip` |
+| `npm test` | Run unit tests |
+| `npm run typecheck` | TypeScript type check |
+
+### Bumping the version
+
+The version is defined in **one place** — `wxt.config.ts`:
+
+```ts
+manifest: {
+  version: '1.2.2',   // ← change this
+  ...
+}
+```
+
+Running `npm run zip` / `npm run zip:firefox` after the change will produce files named after the new version (e.g. `pdks-extension-1.3.0-chrome.zip`).
+
+### Project structure
+
+```
+src/
+  entrypoints/
+    background.ts       service worker — icon animation, content script injection
+    content/
+      index.tsx         shadow DOM mount point
+  components/           React UI components (each paired with a CSS Module)
+  hooks/
+    useWeekData.ts      core calculation logic
+  lib/
+    i18n.ts             language detection and string lookup
+    time-utils.ts       time math (calculateTime, parseOOO, etc.)
+    storage.ts          localStorage wrapper for leave/OOO data
+    network.ts          GitHub version check
+    dom-watcher.ts      MutationObserver-based waitForElement
+  config.ts             portal DOM selectors + all numeric constants (single source of truth)
+  locales/
+    en.json             English strings
+    tr.json             Turkish strings
+  types/
+    index.ts            shared TypeScript interfaces
+public/
+  icons/                extension icons copied to output root by WXT
+tests/
+  utils.test.ts         unit tests for time-utils (51 tests)
+wxt.config.ts           WXT config — manifest, version, browser targets
+```
+
+---
+
+## Credits
+
+Based on the bookmarklet originally developed by **burakdemirtas-jtf**:
 https://github.com/burakdemirtas-jtf/show-week-working-hours
