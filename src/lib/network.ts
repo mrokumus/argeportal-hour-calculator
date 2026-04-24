@@ -3,7 +3,7 @@ import { GITHUB_REPO } from '../config';
 export async function fetchLatestVersion(): Promise<string | null> {
   try {
     const res = await fetch(
-      `https://raw.githubusercontent.com/${GITHUB_REPO}/main/manifest.json`,
+      `https://raw.githubusercontent.com/${GITHUB_REPO}/main/package.json`,
     );
     const { version } = (await res.json()) as { version: string };
     return version;

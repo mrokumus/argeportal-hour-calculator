@@ -1,4 +1,8 @@
 export default defineBackground(() => {
+  // MV3 (Chrome) uses browser.action; MV2 (Firefox) uses browser.browserAction
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const action: typeof browser.action = (browser as any).action ?? (browser as any).browserAction;
+
   const FRAMES = [
     'icons/frames/frame000.png',
     'icons/frames/frame003.png',
@@ -34,7 +38,7 @@ export default defineBackground(() => {
     if (animTimer) return;
     animFrame = 0;
     animTimer = setInterval(() => {
-      browser.action.setIcon({ path: FRAMES[animFrame] });
+      action.setIcon({ path: FRAMES[animFrame] });
       animFrame = (animFrame + 1) % FRAMES.length;
     }, FRAME_DELAY);
   }
@@ -44,7 +48,7 @@ export default defineBackground(() => {
       clearInterval(animTimer);
       animTimer = null;
     }
-    browser.action.setIcon({
+    action.setIcon({
       path: {
         16: 'icons/icon16.png',
         32: 'icons/icon32.png',
@@ -54,7 +58,7 @@ export default defineBackground(() => {
     });
   }
 
-  browser.action.onClicked.addListener((tab) => {
+  action.onClicked.addListener((tab) => {
     if (!tab.id) return;
     startAnimation();
 

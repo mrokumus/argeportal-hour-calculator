@@ -4,12 +4,20 @@ export default defineConfig({
   srcDir: 'src',
   outDir: '.output',
   modules: ['@wxt-dev/module-react'],
-  manifest: {
+  manifest: ({ browser }) => ({
     name: 'PDKS Time Calculator',
     version: '1.3.0',
     description: 'Shows working hours summary on PDKS Giriş Çıkış Bilgileri panel',
     permissions: ['activeTab', 'scripting'],
     host_permissions: ['https://raw.githubusercontent.com/*'],
+    ...(browser === 'firefox' && {
+      browser_specific_settings: {
+        gecko: {
+          id: 'pdks-time-calculator@mrokumus',
+          strict_min_version: '101.0',
+        },
+      },
+    }),
     icons: {
       16: 'icons/icon16.png',
       32: 'icons/icon32.png',
@@ -25,5 +33,5 @@ export default defineConfig({
         128: 'icons/icon128.png',
       },
     },
-  },
+  }),
 });

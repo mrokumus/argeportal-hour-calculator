@@ -30,7 +30,8 @@ function getWeekKey(offset: number): string {
 }
 
 function formatDuration(h: number, m: number): string {
-  if (h > 0) return `${h} ${t('hours')} ${m} ${t('minutes')}`;
+  if (h > 0 && m > 0) return `${h} ${t('hours')} ${m} ${t('minutes')}`;
+  if (h > 0) return `${h} ${t('hours')}`;
   return `${m} ${t('minutes')}`;
 }
 

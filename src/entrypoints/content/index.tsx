@@ -5,6 +5,7 @@ import { PANEL_HOST_ID } from '../../config';
 
 export default defineContentScript({
   matches: ['<all_urls>'],
+  registration: 'runtime',
   cssInjectionMode: 'ui',
   async main(ctx) {
     if (document.getElementById(PANEL_HOST_ID)) return;

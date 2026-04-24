@@ -7,6 +7,7 @@ interface Props {
 }
 
 export function ProgressBar({ percent, targetH }: Props) {
+  if (targetH <= 0) return null;
   const p = Math.min(100, Math.round(percent));
   const color = p >= 100 ? '#10b981' : p >= 70 ? '#3b82f6' : '#f59e0b';
 
@@ -16,9 +17,9 @@ export function ProgressBar({ percent, targetH }: Props) {
         <div className={styles.fill} style={{ width: `${p}%`, background: color }} />
       </div>
       <div className={styles.labels}>
-        <span className={styles.labelText}>0</span>
+        <span className={styles.labelText}>{p}%</span>
         <span className={styles.labelText}>
-          {p}% / {parseFloat(targetH.toFixed(2))}{t('hoursUnit')}
+          {parseFloat(targetH.toFixed(2))}{t('hoursUnit')}
         </span>
       </div>
     </div>

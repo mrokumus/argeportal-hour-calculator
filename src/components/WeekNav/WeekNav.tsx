@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import type { Dayjs } from 'dayjs';
+import dayjs, { type Dayjs } from 'dayjs';
 import { getMondayOfWeek, getSundayOfWeek } from '../../lib/time-utils';
 import { t } from '../../lib/i18n';
 import styles from './WeekNav.module.css';
