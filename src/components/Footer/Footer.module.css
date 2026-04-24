@@ -1,0 +1,23 @@
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.version {
+  color: #ccc;
+  font-size: 11px;
+}
+
+.link {
+  color: #bbb;
+  font-size: 11px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.link:hover {
+  text-decoration: underline;
+}

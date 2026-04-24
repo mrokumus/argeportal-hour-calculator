@@ -1,0 +1,29 @@
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 5px 16px;
+}
+
+.row.small {
+  padding: 2px 16px;
+}
+
+.label {
+  color: #888;
+  font-size: 13px;
+}
+
+.label.small {
+  font-size: 12px;
+}
+
+.value {
+  color: #111;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.value.small {
+  font-size: 12px;
+}

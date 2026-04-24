@@ -1,4 +1,4 @@
-const {
+import {
   calculateTime,
   calculateRemaining,
   calculateRemainingX,
@@ -7,9 +7,9 @@ const {
   parseOOO,
   formatOOO,
   countValidWorkdays,
-} = require('../src/utils');
+} from '../src/lib/time-utils';
 
-const d = (str) => new Date(str); // helper: 'YYYY-MM-DD' → Date
+const d = (str: string) => new Date(str);
 
 // ── calculateTime ──────────────────────────────────────────────
 describe('calculateTime', () => {
@@ -92,39 +92,30 @@ describe('parseOOO', () => {
 // ── countValidWorkdays ─────────────────────────────────────────
 describe('countValidWorkdays', () => {
   describe('full week, all days in same month', () => {
-    // Mon 2026-04-06 … Sun 2026-04-12, monthStart = 2026-04-01
     test('5 workdays in a normal week', () =>
       expect(countValidWorkdays(d('2026-04-06'), d('2026-04-12'), d('2026-04-01'))).toBe(5));
   });
 
   describe('partial first week — some days in previous month', () => {
-    // Week Mon 2026-03-30 … Sun 2026-04-05, monthStart = 2026-04-01
-    // Wed 1 Apr, Thu 2 Apr, Fri 3 Apr belong to April → 3 valid workdays
     test('Mon-Tue in March, Wed-Fri in April → 3', () =>
       expect(countValidWorkdays(d('2026-03-30'), d('2026-04-05'), d('2026-04-01'))).toBe(3));
 
-    // Week Mon 2026-03-30 … Sun 2026-04-05, monthStart = 2026-03-01 (full week in March context)
     test('same week, March context → 5', () =>
       expect(countValidWorkdays(d('2026-03-30'), d('2026-04-05'), d('2026-03-01'))).toBe(5));
   });
 
   describe('monthStart falls mid-week', () => {
-    // 2026-01-01 is a Thursday. Week Mon 2025-12-29 … Sun 2026-01-04, monthStart = 2026-01-01
-    // Thu 1 Jan, Fri 2 Jan belong to January → 2 valid workdays
     test('monthStart on Thursday → 2 valid workdays', () =>
       expect(countValidWorkdays(d('2025-12-29'), d('2026-01-04'), d('2026-01-01'))).toBe(2));
 
-    // 2026-06-01 is a Monday. Week Mon 2026-06-01 … Sun 2026-06-07, monthStart = 2026-06-01
     test('monthStart on Monday → full 5 workdays', () =>
       expect(countValidWorkdays(d('2026-06-01'), d('2026-06-07'), d('2026-06-01'))).toBe(5));
   });
 
   describe('edge cases', () => {
-    // Week is entirely before monthStart
     test('entire week before monthStart → 0', () =>
       expect(countValidWorkdays(d('2026-03-23'), d('2026-03-29'), d('2026-04-01'))).toBe(0));
 
-    // Weekend-only week edge (shouldn't happen, but robust)
     test('weekend days only counted as 0 workdays', () =>
       expect(countValidWorkdays(d('2026-04-04'), d('2026-04-05'), d('2026-04-01'))).toBe(0));
   });
@@ -141,6 +132,6 @@ describe('formatOOO', () => {
 
   test('parseOOO and formatOOO are inverses', () => {
     const cases = ['1:30', '2:15', '0:45', '3:00', '0:05'];
-    cases.forEach(s => expect(formatOOO(parseOOO(s))).toBe(s));
+    cases.forEach((s) => expect(formatOOO(parseOOO(s))).toBe(s));
   });
 });

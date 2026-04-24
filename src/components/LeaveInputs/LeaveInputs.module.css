@@ -1,0 +1,66 @@
+.section {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 9px 16px;
+  border-top: 1px solid #f3f3f3;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  position: relative;
+}
+
+.fieldLabel {
+  font-size: 12px;
+  color: #999;
+}
+
+.oooLabel {
+  font-size: 12px;
+  color: #999;
+  cursor: help;
+  border-bottom: 1px dashed #ccc;
+}
+
+.unit {
+  font-size: 11px;
+  color: #bbb;
+}
+
+.input {
+  text-align: center;
+  border: 1px solid #e0e0e0;
+  border-radius: 5px;
+  padding: 2px 5px;
+  font-size: 12px;
+  font-family: inherit;
+  outline: none;
+  width: 34px;
+}
+
+.input.ooo {
+  width: 42px;
+}
+
+.tooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  background: #222;
+  color: #fff;
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: nowrap;
+  z-index: 99999;
+  pointer-events: none;
+}
+
+.field:hover .tooltip {
+  display: block;
+}

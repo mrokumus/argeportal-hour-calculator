@@ -1,0 +1,9 @@
+.warning {
+  padding: 5px 12px 5px 10px;
+  font-size: 11px;
+  color: #92400e;
+  background-color: #fffbeb;
+  border-left: 3px solid #f59e0b;
+  margin: 2px 0;
+  line-height: 1.4;
+}
