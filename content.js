@@ -607,6 +607,7 @@
 
         // --- WEEK ---
         let weekTotalMin = 0;
+        let weeklyExitStr = null; // HH:MM when you'd finish the weekly target today (if achievable)
         const shortDays = []; // days with 0 < hours < DAILY_MIN_HOURS
 
         if (Object.keys(dailyTotals).length > 0) {
@@ -656,9 +657,19 @@
             if ((r27h || r27m) && Math.abs(27 - weekTargetH) < 9) addRow(t('for27h'), withTodayExit(formatDuration(r27h, r27m), r27h, r27m), { small: true });
             if ((r18h || r18m) && Math.abs(18 - weekTargetH) < 9) addRow(t('for18h'), withTodayExit(formatDuration(r18h, r18m), r18h, r18m), { small: true });
 
+            // Compute weekly exit time (when you'd finish the week if you worked straight through today)
+            const weeklyRemainingMins = rwth * 60 + rwtm;
+            if (weeklyRemainingMins > 0 && weeklyRemainingMins <= todayCapacityMins) {
+              const weekExit = today.add(rwth, 'h').add(rwtm, 'm');
+              if (weekExit.isSame(today, 'day')) {
+                weeklyExitStr = `${String(weekExit.hour()).padStart(2,'0')}:${String(weekExit.minute()).padStart(2,'0')}`;
+              }
+            }
+
             if (today.day() === 5 && rwth < 9) {
               document.querySelector('div.today-remaining')?.remove();
               rh = rwth; rm = rwtm;
+              weeklyExitStr = null; // already shown as the main exit time on Friday
             }
           } else {
             addRow(t('weekTotal'), formatDuration(wh, wm));
@@ -675,12 +686,45 @@
         // --- EXIT TIME ---
         if (isCurrentWeek && firstRecord) {
           addDivider();
+          const stats = document.querySelector('#pdks-stats');
+          const exitRow = document.createElement('div');
+          exitRow.className = 'script-input';
+          Object.assign(exitRow.style, { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '5px 16px' });
+
+          // Label with tooltip
+          const labelWrap = document.createElement('span');
+          labelWrap.style.cssText = 'position:relative;display:inline-flex;align-items:center;';
+          const exitLabel = document.createElement('span');
+          exitLabel.textContent = t('exitTime');
+          exitLabel.style.cssText = 'color:#888;font-size:13px;cursor:help;border-bottom:1px dashed #ccc;';
+          const exitTip = document.createElement('div');
+          exitTip.style.cssText = 'display:none;position:absolute;bottom:calc(100% + 6px);left:0;background:#222;color:#fff;padding:7px 10px;border-radius:8px;font-size:11px;line-height:1.6;white-space:nowrap;z-index:99999;pointer-events:none;';
+          exitTip.innerHTML = weeklyExitStr
+            ? t('exitTimeTipWithWeek', { wt: weeklyExitStr })
+            : today.day() === 5
+              ? t('exitTimeTipFriday')
+              : t('exitTimeTip');
+          exitLabel.addEventListener('mouseenter', () => exitTip.style.display = 'block');
+          exitLabel.addEventListener('mouseleave', () => exitTip.style.display = 'none');
+          labelWrap.appendChild(exitLabel);
+          labelWrap.appendChild(exitTip);
+
+          // Value
+          const exitVal = document.createElement('span');
+          Object.assign(exitVal.style, { fontWeight: '600', fontSize: '14px' });
           if (rh !== 0 || rm !== 0) {
             const lt = today.add(rh, 'h').add(rm, 'm');
-            addRow(t('exitTime'), `~ ${String(lt.hour()).padStart(2,'0')}:${String(lt.minute()).padStart(2,'0')}`);
+            const dailyStr = `~ ${String(lt.hour()).padStart(2,'0')}:${String(lt.minute()).padStart(2,'0')}`;
+            exitVal.textContent = weeklyExitStr ? `${dailyStr}  (${t('weekShort')}: ${weeklyExitStr})` : dailyStr;
+            exitVal.style.color = '#111';
           } else {
-            addRow(t('exitTime'), t('canLeave'), { color: '#10b981' });
+            exitVal.textContent = t('canLeave');
+            exitVal.style.color = '#10b981';
           }
+
+          exitRow.appendChild(labelWrap);
+          exitRow.appendChild(exitVal);
+          stats.appendChild(exitRow);
         }
 
         // --- SHORT DAY WARNINGS ---
