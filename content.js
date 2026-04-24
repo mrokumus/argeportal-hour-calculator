@@ -652,9 +652,9 @@
               if (!exit.isSame(today, 'day')) return duration;
               return `${duration}  (${String(exit.hour()).padStart(2,'0')}:${String(exit.minute()).padStart(2,'0')})`;
             };
-            if (r36h || r36m) addRow(t('for36h'), withTodayExit(formatDuration(r36h, r36m), r36h, r36m), { small: true });
-            if (r27h || r27m) addRow(t('for27h'), withTodayExit(formatDuration(r27h, r27m), r27h, r27m), { small: true });
-            if (r18h || r18m) addRow(t('for18h'), withTodayExit(formatDuration(r18h, r18m), r18h, r18m), { small: true });
+            if ((r36h || r36m) && Math.abs(36 - weekTargetH) < 9) addRow(t('for36h'), withTodayExit(formatDuration(r36h, r36m), r36h, r36m), { small: true });
+            if ((r27h || r27m) && Math.abs(27 - weekTargetH) < 9) addRow(t('for27h'), withTodayExit(formatDuration(r27h, r27m), r27h, r27m), { small: true });
+            if ((r18h || r18m) && Math.abs(18 - weekTargetH) < 9) addRow(t('for18h'), withTodayExit(formatDuration(r18h, r18m), r18h, r18m), { small: true });
 
             if (today.day() === 5 && rwth < 9) {
               document.querySelector('div.today-remaining')?.remove();
