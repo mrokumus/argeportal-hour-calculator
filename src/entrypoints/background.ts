@@ -58,14 +58,14 @@ export default defineBackground(() => {
     });
   }
 
-  action.onClicked.addListener((tab) => {
+  action.onClicked.addListener((tab: Browser.tabs.Tab) => {
     if (!tab.id) return;
     startAnimation();
 
     browser.scripting
       .executeScript({
         target: { tabId: tab.id },
-        files: ['content-scripts/content.js'],
+        files: ['/content-scripts/content.js'],
       })
       .finally(() => {
         stopAnimation();

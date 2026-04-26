@@ -11,7 +11,7 @@
     "zip:firefox": "wxt zip -b firefox",
     "test": "jest",
     "icons": "node icons/generate.js",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "wxt prepare && tsc --noEmit",
     "sign:firefox": "wxt build -b firefox && web-ext sign --source-dir .output/firefox-mv2 --artifacts-dir web-ext-artifacts --api-key=$AMO_KEY --api-secret=$AMO_SECRET --channel=unlisted"
   },
   "devDependencies": {

@@ -60,12 +60,7 @@ function computeDailyTotals(rows: NodeListOf<Element>): Record<string, number> {
   return map;
 }
 
-function formatDuration(h: number, m: number, t: (key: string) => string): string {
-  if (h > 0) return `${h} ${t('hours')} ${m} ${t('minutes')}`;
-  return `${m} ${t('minutes')}`;
-}
-
-export function useWeekData(weekOffset: number, t: (key: string, params?: Record<string, string | number>) => string) {
+export function useWeekData(weekOffset: number) {
   const [data, setData] = useState<WeekData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 

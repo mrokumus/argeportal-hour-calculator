@@ -97,7 +97,7 @@ export function Panel() {
   const monthStart = dayjs().startOf('month');
 
   const weekKey = getWeekKey(weekOffset);
-  const { data, isLoading, run } = useWeekData(weekOffset, t);
+  const { data, isLoading, run } = useWeekData(weekOffset);
 
   // Initial panel setup
   useEffect(() => {
