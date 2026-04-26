@@ -6,7 +6,7 @@ export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   manifest: ({ browser }) => ({
     name: 'PDKS Time Calculator',
-    version: '1.3.0',
+    version: '1.3.1',
     description: 'Shows working hours summary on PDKS Giriş Çıkış Bilgileri panel',
     permissions: ['activeTab', 'scripting'],
     host_permissions: ['https://raw.githubusercontent.com/*'],
