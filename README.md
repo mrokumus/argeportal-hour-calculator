@@ -34,21 +34,18 @@ A browser extension for **Chrome** and **Firefox** that displays a working-hours
 
 ### Firefox
 
-1. Download the latest `pdks-extension-x.x.x-firefox.zip` from [Releases](../../releases/latest) and unzip it
-2. Go to `about:debugging#/runtime/this-firefox`
-3. Click **Load Temporary Add-on** and select any file inside the unzipped folder
+1. Download the latest `.xpi` file from [Releases](../../releases/latest)
+2. Go to `about:addons`
+3. Click the gear icon and select **Install Add-on From File**, then select the downloaded `.xpi` file
 
-> Firefox temporary add-ons are removed when the browser restarts. For a permanent install the extension would need to be signed by Mozilla.
+> Alternatively, drag and drop the `.xpi` file directly into Firefox to install it.
 
 ---
 
 ## Usage
 
 1. Log in to **ARGEPORTAL**
-2. Navigate to **PDKS > PDKS Giriş-Çıkış Bilgileri Kartı** in the left sidebar
-3. Make sure the **current month** is selected in the period dropdown
-4. Click the hourglass icon in the browser toolbar
-5. A summary panel will appear on the page
+2. Click the extension icon in the browser toolbar — a summary panel will appear on the page
 
 ### Leave / OOO inputs
 
@@ -94,12 +91,12 @@ The version is defined in **one place** — `wxt.config.ts`:
 
 ```ts
 manifest: {
-  version: '1.2.2',   // ← change this
+  version: '1.3.1',   // ← change this
   ...
 }
 ```
 
-Running `npm run zip` / `npm run zip:firefox` after the change will produce files named after the new version (e.g. `pdks-extension-1.3.0-chrome.zip`).
+Running `npm run zip` / `npm run zip:firefox` after the change will produce files named after the new version (e.g. `pdks-extension-1.3.1-chrome.zip`).
 
 ### Project structure
 
