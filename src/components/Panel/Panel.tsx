@@ -250,7 +250,7 @@ export function Panel() {
       )}
 
       {/* Week section */}
-      {weekTotalMin > 0 && (
+      {weekTotalWithTodayMin > 0 && (
         <>
           <div className={styles.divider} />
           {isCurrentWeek ? (
