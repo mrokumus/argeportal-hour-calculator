@@ -119,6 +119,17 @@ describe('countValidWorkdays', () => {
     test('weekend days only counted as 0 workdays', () =>
       expect(countValidWorkdays(d('2026-04-04'), d('2026-04-05'), d('2026-04-01'))).toBe(0));
   });
+
+  describe('month-end boundary (week crosses into next month)', () => {
+    test('week Apr 27–May 3, April context → 4 workdays (Mon–Thu Apr)', () =>
+      expect(countValidWorkdays(d('2026-04-27'), d('2026-05-03'), d('2026-04-01'), d('2026-04-30'))).toBe(4));
+
+    test('week Apr 27–May 3, May context → 1 workday (Fri May 1)', () =>
+      expect(countValidWorkdays(d('2026-04-27'), d('2026-05-03'), d('2026-05-01'), d('2026-05-31'))).toBe(1));
+
+    test('without monthEnd still counts all workdays in range ≥ monthStart', () =>
+      expect(countValidWorkdays(d('2026-04-27'), d('2026-05-03'), d('2026-04-01'))).toBe(5));
+  });
 });
 
 // ── formatOOO ─────────────────────────────────────────────────

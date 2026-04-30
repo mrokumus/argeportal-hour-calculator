@@ -81,6 +81,7 @@ export function countValidWorkdays(
   weekStart: Date,
   weekEnd: Date,
   monthStart: Date,
+  monthEnd?: Date,
 ): number {
   let count = 0;
   const d = new Date(weekStart);
@@ -89,9 +90,11 @@ export function countValidWorkdays(
   end.setHours(23, 59, 59, 999);
   const mStart = new Date(monthStart);
   mStart.setHours(0, 0, 0, 0);
+  const mEnd = monthEnd ? new Date(monthEnd) : null;
+  if (mEnd) mEnd.setHours(23, 59, 59, 999);
   while (d <= end) {
     const day = d.getDay();
-    if (day >= 1 && day <= 5 && d >= mStart) count++;
+    if (day >= 1 && day <= 5 && d >= mStart && (!mEnd || d <= mEnd)) count++;
     d.setDate(d.getDate() + 1);
   }
   return count;

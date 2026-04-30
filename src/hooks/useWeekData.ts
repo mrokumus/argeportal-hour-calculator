@@ -94,6 +94,7 @@ export function useWeekData(weekOffset: number) {
       const weekEnd = dayjs(getSundayOfWeek(weekOffset));
       const weekKey = getWeekKey(weekOffset);
       const monthStart = dayjs().startOf('month');
+      const monthEnd = dayjs().endOf('month');
 
       const leaveData = currentLeaveData ?? getLeaveData(weekKey);
       const monthlyList = tableTwo.querySelectorAll('tbody > tr');
@@ -102,6 +103,7 @@ export function useWeekData(weekOffset: number) {
         weekStart.toDate(),
         weekEnd.toDate(),
         monthStart.toDate(),
+        monthEnd.toDate(),
       );
 
       // Auto-detect leave days

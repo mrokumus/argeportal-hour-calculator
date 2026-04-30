@@ -263,21 +263,21 @@ export function Panel() {
                 value={rwth === 0 && rwtm === 0 ? t('done') : formatDuration(rwth, rwtm)}
                 color={rwth === 0 && rwtm === 0 ? '#10b981' : '#f59e0b'}
               />
-              {(r36h || r36m) && Math.abs(36 - weekTargetH) < 9 && (
+              {(r36h > 0 || r36m > 0) && Math.abs(36 - weekTargetH) < 9 && (
                 <StatsRow
                   label={t('for36h')}
                   value={withTodayExit(formatDuration(r36h, r36m), r36h, r36m)}
                   small
                 />
               )}
-              {(r27h || r27m) && Math.abs(27 - weekTargetH) < 9 && (
+              {(r27h > 0 || r27m > 0) && Math.abs(27 - weekTargetH) < 9 && (
                 <StatsRow
                   label={t('for27h')}
                   value={withTodayExit(formatDuration(r27h, r27m), r27h, r27m)}
                   small
                 />
               )}
-              {(r18h || r18m) && Math.abs(18 - weekTargetH) < 9 && (
+              {(r18h > 0 || r18m > 0) && Math.abs(18 - weekTargetH) < 9 && (
                 <StatsRow
                   label={t('for18h')}
                   value={withTodayExit(formatDuration(r18h, r18m), r18h, r18m)}
