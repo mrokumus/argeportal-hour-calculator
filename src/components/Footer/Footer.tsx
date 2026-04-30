@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { fetchLatestVersion, RELEASES_URL } from '../../lib/network';
+import { fetchLatestVersion, isNewerVersion, RELEASES_URL } from '../../lib/network';
 import { t } from '../../lib/i18n';
 import styles from './Footer.module.css';
 
@@ -16,14 +16,14 @@ export function Footer() {
         setLinkHref(RELEASES_URL);
         return;
       }
-      if (latest === version) {
-        setLinkText(t('upToDate'));
-        setLinkColor('#10b981');
-        setLinkHref(undefined);
-      } else {
+      if (isNewerVersion(latest, version)) {
         setLinkText(t('updateAvailable', { v: latest }));
         setLinkColor('#ef4444');
         setLinkHref(RELEASES_URL);
+      } else {
+        setLinkText(t('upToDate'));
+        setLinkColor('#10b981');
+        setLinkHref(undefined);
       }
     });
   }, [version]);
