@@ -14,8 +14,12 @@ export default defineConfig({
     ...(browser === 'firefox' && {
       browser_specific_settings: {
         gecko: {
-          id: 'pdks-time-calculator@mrokumus',
-          strict_min_version: '101.0',
+          id: 'pdks-time-calculator@okumusmr',
+          strict_min_version: '142.0',
+          data_collection_permissions: {
+            required: ['none'],
+            optional: [],
+          },
         },
       },
     }),
