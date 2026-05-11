@@ -28,7 +28,6 @@ A browser extension for **Chrome** and **Firefox** that displays a working-hours
 > [Chrome Extension Store](https://chromewebstore.google.com/detail/pdks-time-calculator/lfndjhccealnhplglfbfhbjfcabllmfc)
 
 ### Unpack
-> The extension is loaded as an unpacked extension — it is not published to any store.
 
 #### Chrome / Arc
 
