@@ -22,17 +22,22 @@ A browser extension for **Chrome** and **Firefox** that displays a working-hours
 ---
 
 ## Installation
+### Stores
+> [Mozilla Addon Store](https://addons.mozilla.org/en-US/firefox/addon/pdks-time-calculator/)
+> 
+> [Chrome Extension Store](https://chromewebstore.google.com/detail/pdks-time-calculator/lfndjhccealnhplglfbfhbjfcabllmfc)
 
+### Unpack
 > The extension is loaded as an unpacked extension — it is not published to any store.
 
-### Chrome / Arc
+#### Chrome / Arc
 
 1. Download the latest `pdks-extension-x.x.x-chrome.zip` from [Releases](../../releases/latest) and unzip it
 2. Go to `chrome://extensions`
 3. Enable **Developer mode** (top-right toggle)
 4. Click **Load unpacked** and select the unzipped folder
 
-### Firefox
+#### Firefox
 
 1. Download the latest `.xpi` file from [Releases](../../releases/latest)
 2. Go to `about:addons`
