@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import dayjs, { type Dayjs } from 'dayjs';
+import type { CalcMode } from '../../types';
 import { getMondayOfWeek, getSundayOfWeek } from '../../lib/time-utils';
 import { t } from '../../lib/i18n';
 import styles from './WeekNav.module.css';
@@ -9,8 +10,10 @@ interface Props {
   monthStart: Dayjs;
   disabled: boolean;
   panelRef: React.RefObject<HTMLDivElement | null>;
+  calcMode: CalcMode;
   onPrev: () => void;
   onNext: () => void;
+  onCalcModeToggle: () => void;
 }
 
 function formatRange(offset: number): string {
@@ -28,7 +31,7 @@ function getLabel(weekOffset: number): string {
   return t('weeksAgoNav', { n: Math.abs(weekOffset), r });
 }
 
-export function WeekNav({ weekOffset, monthStart, disabled, panelRef, onPrev, onNext }: Props) {
+export function WeekNav({ weekOffset, monthStart, disabled, panelRef, calcMode, onPrev, onNext, onCalcModeToggle }: Props) {
   const navRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
   const start = useRef({ x: 0, y: 0, left: 0, top: 0 });
@@ -77,14 +80,27 @@ export function WeekNav({ weekOffset, monthStart, disabled, panelRef, onPrev, on
         {t('prevBtn')}
       </button>
       <span className={styles.label}>{getLabel(weekOffset)}</span>
-      <button
-        className={styles.btn}
-        onClick={onNext}
-        disabled={disabled || !canGoNext}
-        style={{ visibility: canGoNext ? 'visible' : 'hidden' }}
-      >
-        {t('nextBtn')}
-      </button>
+      <div className={styles.rightSlot}>
+        <div className={styles.modeField}>
+          <button
+            className={`${styles.modeBtn} ${calcMode === 'span' ? styles.modeBtnActive : ''}`}
+            onClick={onCalcModeToggle}
+          >
+            {t(calcMode === 'span' ? 'calcModeSpanLabel' : 'calcModeSessionsLabel')}
+          </button>
+          <div className={styles.modeTooltip}>
+            {t(calcMode === 'span' ? 'calcModeSpanTip' : 'calcModeSessionsTip')}
+          </div>
+        </div>
+        <button
+          className={styles.btn}
+          onClick={onNext}
+          disabled={disabled || !canGoNext}
+          style={{ visibility: canGoNext ? 'visible' : 'hidden' }}
+        >
+          {t('nextBtn')}
+        </button>
+      </div>
     </div>
   );
 }

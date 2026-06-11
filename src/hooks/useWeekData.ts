@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import dayjs from 'dayjs';
-import type { LeaveData } from '../types';
+import type { CalcMode, LeaveData } from '../types';
 import {
   getMondayOfWeek,
   getSundayOfWeek,
@@ -60,7 +60,44 @@ function computeDailyTotals(rows: NodeListOf<Element>): Record<string, number> {
   return map;
 }
 
-export function useWeekData(weekOffset: number) {
+function computeDailyTotalsSpan(
+  rawRows: NodeListOf<Element>,
+  weekStart: ReturnType<typeof dayjs>,
+  weekEnd: ReturnType<typeof dayjs>,
+  monthStart: ReturnType<typeof dayjs>,
+  today: ReturnType<typeof dayjs>,
+  isCurrentWeek: boolean,
+): Record<string, number> {
+  const dayData: Record<string, { first: number; last: number }> = {};
+  rawRows.forEach((row) => {
+    try {
+      const raw = (row.querySelector('td:nth-child(6)') as HTMLElement).innerText;
+      const [dateStr, timeStr] = timeNormalize(raw);
+      if (!timeStr) return;
+      const rowDay = dayjs(dateStr);
+      if (rowDay.isBefore(weekStart, 'day') || rowDay.isAfter(weekEnd, 'day')) return;
+      if (rowDay.isBefore(monthStart, 'day')) return;
+      if (isCurrentWeek && today.isSame(rowDay, 'day')) return;
+      const [h, m] = timeStr.split(':').map(Number);
+      const mins = h * 60 + m;
+      if (!dayData[dateStr]) {
+        dayData[dateStr] = { first: mins, last: mins };
+      } else {
+        dayData[dateStr].first = Math.min(dayData[dateStr].first, mins);
+        dayData[dateStr].last = Math.max(dayData[dateStr].last, mins);
+      }
+    } catch {
+      // skip malformed rows
+    }
+  });
+  const result: Record<string, number> = {};
+  for (const [date, { first, last }] of Object.entries(dayData)) {
+    result[date] = Math.max(0, last - first);
+  }
+  return result;
+}
+
+export function useWeekData(weekOffset: number, calcMode: CalcMode = 'sessions') {
   const [data, setData] = useState<WeekData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -98,7 +135,12 @@ export function useWeekData(weekOffset: number) {
 
       const leaveData = currentLeaveData ?? getLeaveData(weekKey);
       const monthlyList = tableTwo.querySelectorAll('tbody > tr');
-      const dailyTotals = computeDailyTotals(monthlyList);
+      const dailyTotals = calcMode === 'span'
+        ? computeDailyTotalsSpan(
+            tableOne.querySelectorAll('tbody > tr'),
+            weekStart, weekEnd, monthStart, today, isCurrentWeek,
+          )
+        : computeDailyTotals(monthlyList);
       const validWorkdays = countValidWorkdays(
         weekStart.toDate(),
         weekEnd.toDate(),
@@ -220,7 +262,7 @@ export function useWeekData(weekOffset: number) {
         selectMonthWarning: false,
       });
     },
-    [weekOffset],
+    [weekOffset, calcMode],
   );
 
   function run(currentLeaveData?: LeaveData) {

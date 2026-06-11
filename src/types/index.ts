@@ -11,6 +11,8 @@ export interface DailyTotal {
 
 export type Locale = 'tr' | 'en';
 
+export type CalcMode = 'sessions' | 'span';
+
 export interface WeekStats {
   isCurrentWeek: boolean;
   weekKey: string;

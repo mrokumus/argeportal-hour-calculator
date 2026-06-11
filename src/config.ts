@@ -42,3 +42,6 @@ export const MENU_CARD_CLICK_DELAY_MS = 500;
 
 /** GitHub repository path used for version checks */
 export const GITHUB_REPO = 'mrokumus/argeportal-hour-calculator';
+
+/** localStorage key for calculation mode ('sessions' | 'span') */
+export const STORAGE_KEY_CALC_MODE = `${STORAGE_PREFIX}calc_mode`;

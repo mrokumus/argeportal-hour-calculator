@@ -39,3 +39,64 @@
 .btn:not(:disabled):hover {
   background: rgba(255, 255, 255, 0.18);
 }
+
+.rightSlot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.modeField {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.modeBtn {
+  cursor: pointer;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-family: inherit;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.modeBtn:hover {
+  color: rgba(255, 255, 255, 0.7);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.modeBtnActive {
+  color: #10b981;
+  border-color: #10b981;
+}
+
+.modeBtnActive:hover {
+  color: #34d399;
+  border-color: #34d399;
+}
+
+.modeTooltip {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: #222;
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: nowrap;
+  z-index: 99999;
+  pointer-events: none;
+  border: 1px solid #444;
+}
+
+.modeField:hover .modeTooltip {
+  display: block;
+}

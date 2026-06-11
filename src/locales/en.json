@@ -41,5 +41,9 @@
   "pdksMissing": "PDKS menu not found. Make sure you're logged into the portal.",
   "pdksCardMissing": "\"PDKS Entry-Exit Info Card\" menu not found. Please open it manually.",
   "panelFailed": "Panel could not be loaded. Please open it manually and try again.",
-  "selectMonthFirst": "Please select a month from the Dönem dropdown to see your stats."
+  "selectMonthFirst": "Please select a month from the Dönem dropdown to see your stats.",
+  "calcModeSessionsLabel": "∑ Sessions",
+  "calcModeSpanLabel": "First→Last",
+  "calcModeSessionsTip": "Sum of all individual work sessions per day.",
+  "calcModeSpanTip": "First entry → last exit per day (includes breaks)."
 }

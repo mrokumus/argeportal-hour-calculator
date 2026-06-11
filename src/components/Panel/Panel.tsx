@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import dayjs from 'dayjs';
-import type { LeaveData } from '../../types';
+import type { CalcMode, LeaveData } from '../../types';
 import { useWeekData } from '../../hooks/useWeekData';
-import { getLeaveData } from '../../lib/storage';
+import { getCalcMode, getLeaveData, saveCalcMode } from '../../lib/storage';
 import { calculateRemaining, calculateTime, getMondayOfWeek, getSundayOfWeek } from '../../lib/time-utils';
 import { t } from '../../lib/i18n';
 import { waitForElement } from '../../lib/dom-watcher';
@@ -94,10 +94,11 @@ export function Panel() {
   const [weekOffset, setWeekOffset] = useState(0);
   const [ready, setReady] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
+  const [calcMode, setCalcMode] = useState<CalcMode>(getCalcMode);
   const monthStart = dayjs().startOf('month');
 
   const weekKey = getWeekKey(weekOffset);
-  const { data, isLoading, run } = useWeekData(weekOffset);
+  const { data, isLoading, run } = useWeekData(weekOffset, calcMode);
 
   // Initial panel setup
   useEffect(() => {
@@ -116,10 +117,10 @@ export function Panel() {
     })();
   }, []);
 
-  // Run calculation when ready or weekOffset changes
+  // Run calculation when ready, weekOffset, or calcMode changes
   useEffect(() => {
     if (ready) run();
-  }, [ready, weekOffset]);
+  }, [ready, weekOffset, calcMode]);
 
   // 60-second auto-refresh for current week
   useEffect(() => {
@@ -132,6 +133,12 @@ export function Panel() {
 
   function handleLeaveChange(updated: LeaveData) {
     run(updated);
+  }
+
+  function handleCalcModeToggle() {
+    const next: CalcMode = calcMode === 'sessions' ? 'span' : 'sessions';
+    saveCalcMode(next);
+    setCalcMode(next);
   }
 
   if (initError) {
@@ -217,8 +224,10 @@ export function Panel() {
         monthStart={monthStart}
         disabled={isLoading}
         panelRef={panelRef}
+        calcMode={calcMode}
         onPrev={() => { if (!isLoading) setWeekOffset((o) => o - 1); }}
         onNext={() => { if (!isLoading) setWeekOffset((o) => o + 1); }}
+        onCalcModeToggle={handleCalcModeToggle}
       />
 
       {selectMonthWarning && <Warning text={t('selectMonthFirst')} />}

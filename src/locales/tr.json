@@ -41,5 +41,9 @@
   "pdksMissing": "PDKS menüsü bulunamadı. Portal'a giriş yaptığınızdan emin olun.",
   "pdksCardMissing": "\"PDKS Giriş-Çıkış Bilgileri Kartı\" menüsü bulunamadı. Manuel olarak açın.",
   "panelFailed": "Panel yüklenemedi. Lütfen manuel olarak açıp tekrar deneyin.",
-  "selectMonthFirst": "İstatistikleri görmek için Dönem açılır menüsünden bir ay seçin."
+  "selectMonthFirst": "İstatistikleri görmek için Dönem açılır menüsünden bir ay seçin.",
+  "calcModeSessionsLabel": "∑ Seanslar",
+  "calcModeSpanLabel": "İlk→Son",
+  "calcModeSessionsTip": "Günlük tüm çalışma seanslarının toplamı.",
+  "calcModeSpanTip": "İlk giriş → son çıkış arası süre (molalar dahil)."
 }
