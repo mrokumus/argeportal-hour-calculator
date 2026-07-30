@@ -1,29 +1,32 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
-import type { CalcMode, LeaveData } from '../../types';
-import { useWeekData } from '../../hooks/useWeekData';
-import { getCalcMode, getLeaveData, saveCalcMode } from '../../lib/storage';
-import { calculateRemaining, calculateTime, getMondayOfWeek, getSundayOfWeek } from '../../lib/time-utils';
-import { t } from '../../lib/i18n';
-import { waitForElement } from '../../lib/dom-watcher';
+import type { CalcMode, LeaveData, Snapshot } from '../../types';
+import { computeWeekData } from '../../lib/calc';
 import {
-  SELECTOR_MAIN_GRID,
-  SELECTOR_PDKS_FOLDER,
-  SELECTOR_PERIOD_SELECT,
-  MENU_FOLDER_ID,
-  DAILY_TARGET_HOURS,
-  DAILY_CAP_HOURS,
-  REFRESH_INTERVAL_MS,
-  MENU_CARD_CLICK_DELAY_MS,
-  PERIOD_CHANGE_DELAY_MS,
-} from '../../config';
-import { WeekNav } from '../WeekNav/WeekNav';
-import { StatsRow } from '../StatsRow/StatsRow';
-import { ProgressBar } from '../ProgressBar/ProgressBar';
-import { Warning } from '../Warning/Warning';
-import { LeaveInputs } from '../LeaveInputs/LeaveInputs';
-import { Footer } from '../Footer/Footer';
-import styles from './Panel.module.css';
+  getCalcMode,
+  getLeaveData,
+  getSnapshot,
+  saveCalcMode,
+  saveLeaveData,
+  saveSnapshot,
+} from '../../lib/storage';
+import { requestParse } from '../../lib/refresh';
+import {
+  calculateRemaining,
+  calculateTime,
+  getMondayOfWeek,
+} from '../../lib/time-utils';
+import { t } from '../../lib/i18n';
+import { DAILY_TARGET_HOURS, DAILY_CAP_HOURS, REFRESH_INTERVAL_MS } from '../../config';
+import { WeekNav } from '../../components/WeekNav/WeekNav';
+import { StatsRow } from '../../components/StatsRow/StatsRow';
+import { ProgressBar } from '../../components/ProgressBar/ProgressBar';
+import { Warning } from '../../components/Warning/Warning';
+import { LeaveInputs } from '../../components/LeaveInputs/LeaveInputs';
+import { Footer } from '../../components/Footer/Footer';
+import styles from './App.module.css';
+
+const DEFAULT_LEAVE: LeaveData = { leave: 0, ooo: 0, autoDetected: true };
 
 function getWeekKey(offset: number): string {
   return getMondayOfWeek(offset).toISOString().slice(0, 10);
@@ -35,105 +38,72 @@ function formatDuration(h: number, m: number): string {
   return `${m} ${t('minutes')}`;
 }
 
-async function ensureCurrentMonthSelected(): Promise<void> {
-  const monthSelect = document.querySelector(SELECTOR_PERIOD_SELECT) as HTMLSelectElement | null;
-  if (!monthSelect) return;
-
-  const currentMonthText = new Date()
-    .toLocaleString('tr-TR', { month: 'long' })
-    .toLocaleUpperCase('tr-TR');
-  const currentYearShort = String(new Date().getFullYear()).slice(-2);
-
-  const selected = monthSelect.options[monthSelect.selectedIndex];
-  if (selected?.textContent?.includes(currentMonthText)) return;
-
-  for (let i = 0; i < monthSelect.options.length; i++) {
-    const opt = monthSelect.options[i];
-    if (
-      opt.textContent?.includes(currentMonthText) &&
-      opt.textContent?.includes(currentYearShort)
-    ) {
-      monthSelect.selectedIndex = i;
-      monthSelect.dispatchEvent(new Event('change', { bubbles: true }));
-      await new Promise<void>((res) => setTimeout(res, PERIOD_CHANGE_DELAY_MS));
-      return;
-    }
-  }
-}
-
-async function openPdksPanel(): Promise<void> {
-  const pdksFolderA = Array.from(
-    document.querySelectorAll<HTMLAnchorElement>(SELECTOR_PDKS_FOLDER),
-  ).find((a) => a.textContent?.includes('PDKS'));
-
-  if (!pdksFolderA) {
-    throw new Error(t('pdksMissing'));
-  }
-
-  pdksFolderA.click();
-  await new Promise<void>((res) => setTimeout(res, MENU_CARD_CLICK_DELAY_MS));
-
-  const pdksUl = document.querySelector<HTMLElement>(`ul#${MENU_FOLDER_ID}`);
-  const kartA = pdksUl
-    ? Array.from(pdksUl.querySelectorAll<HTMLAnchorElement>('li.EndLineMenu > a')).find((a) =>
-        a.textContent?.includes('Giriş-Çıkış'),
-      )
-    : null;
-
-  if (!kartA) {
-    throw new Error(t('pdksCardMissing'));
-  }
-
-  kartA.click();
-  await waitForElement(SELECTOR_MAIN_GRID);
-  await new Promise<void>((res) => setTimeout(res, 700));
-}
-
-export function Panel() {
-  const panelRef = useRef<HTMLDivElement>(null);
+export function App() {
+  const [booted, setBooted] = useState(false);
+  const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
+  const [calcMode, setCalcMode] = useState<CalcMode>('sessions');
   const [weekOffset, setWeekOffset] = useState(0);
-  const [ready, setReady] = useState(false);
-  const [initError, setInitError] = useState<string | null>(null);
-  const [calcMode, setCalcMode] = useState<CalcMode>(getCalcMode);
-  const monthStart = dayjs().startOf('month');
+  const [leaveData, setLeaveData] = useState<LeaveData | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [portalStatus, setPortalStatus] = useState<'ok' | 'not-found' | null>(null);
+  const [now, setNow] = useState(Date.now());
 
   const weekKey = getWeekKey(weekOffset);
-  const { data, isLoading, run } = useWeekData(weekOffset, calcMode);
 
-  // Initial panel setup
+  async function refresh() {
+    setRefreshing(true);
+    const res = await requestParse();
+    if (res.ok) {
+      await saveSnapshot(res.snapshot);
+      setSnapshot(res.snapshot);
+      setPortalStatus('ok');
+    } else {
+      setPortalStatus('not-found');
+    }
+    setRefreshing(false);
+  }
+
+  // Initial load: read cached state, then attempt a fresh parse of the active tab.
   useEffect(() => {
-    const alreadyOpen = !!document.querySelector(SELECTOR_MAIN_GRID);
-
     (async () => {
-      try {
-        if (!alreadyOpen) {
-          await openPdksPanel();
-        }
-        await ensureCurrentMonthSelected();
-        setReady(true);
-      } catch (err) {
-        setInitError(err instanceof Error ? err.message : t('panelFailed'));
-      }
+      const [mode, snap] = await Promise.all([getCalcMode(), getSnapshot()]);
+      setCalcMode(mode);
+      setSnapshot(snap);
+      setBooted(true);
+      await refresh();
     })();
   }, []);
 
-  // Run calculation when ready, weekOffset, or calcMode changes
+  // Load the leave/OOO record for whichever week is shown.
   useEffect(() => {
-    if (ready) run();
-  }, [ready, weekOffset, calcMode]);
+    if (!booted) return;
+    let active = true;
+    getLeaveData(weekKey).then((d) => {
+      if (active) setLeaveData(d);
+    });
+    return () => {
+      active = false;
+    };
+  }, [booted, weekKey]);
 
-  // 60-second auto-refresh for current week
+  // Tick every minute so "today" keeps counting while the popup is open.
   useEffect(() => {
-    if (!ready) return;
-    const timer = setInterval(() => {
-      if (weekOffset === 0) run();
-    }, REFRESH_INTERVAL_MS);
+    const timer = setInterval(() => setNow(Date.now()), REFRESH_INTERVAL_MS);
     return () => clearInterval(timer);
-  }, [ready, weekOffset]);
+  }, []);
 
-  function handleLeaveChange(updated: LeaveData) {
-    run(updated);
-  }
+  const result = useMemo(() => {
+    if (!snapshot || !leaveData) return null;
+    return computeWeekData(snapshot, weekOffset, calcMode, leaveData, dayjs(now));
+  }, [snapshot, leaveData, weekOffset, calcMode, now]);
+
+  // Persist auto-detected leave changes back to storage.
+  useEffect(() => {
+    if (result?.leaveDataChanged) {
+      saveLeaveData(weekKey, result.data.leaveData);
+      setLeaveData(result.data.leaveData);
+    }
+  }, [result, weekKey]);
 
   function handleCalcModeToggle() {
     const next: CalcMode = calcMode === 'sessions' ? 'span' : 'sessions';
@@ -141,18 +111,14 @@ export function Panel() {
     setCalcMode(next);
   }
 
-  if (initError) {
-    return (
-      <div ref={panelRef} className={styles.panel}>
-        <div className={styles.loading}>{initError}</div>
-        <Footer />
-      </div>
-    );
+  function handleLeaveChange(updated: LeaveData) {
+    saveLeaveData(weekKey, updated);
+    setLeaveData(updated);
   }
 
-  if (!ready || isLoading || !data) {
+  if (!booted) {
     return (
-      <div ref={panelRef} className={styles.panel}>
+      <div className={styles.app}>
         <div className={styles.loading}>
           <div className={styles.spinner} />
           <span>{t('loading')}</span>
@@ -161,6 +127,39 @@ export function Panel() {
     );
   }
 
+  const stale = snapshot ? snapshot.capturedDay !== dayjs(now).format('YYYY-MM-DD') : false;
+  const updatedText = snapshot
+    ? stale
+      ? t('lastUpdated', { t: dayjs(snapshot.capturedAt).format('DD.MM HH:mm') })
+      : t('lastUpdated', { t: dayjs(snapshot.capturedAt).format('HH:mm') })
+    : '';
+
+  const statusBar = (
+    <div className={styles.statusBar}>
+      <span className={`${styles.updated} ${stale ? styles.updatedStale : ''}`}>
+        {snapshot ? updatedText : t('noData')}
+      </span>
+      <button className={styles.refreshBtn} onClick={refresh} disabled={refreshing}>
+        {refreshing && <span className={styles.refreshSpinner} />}
+        {refreshing ? t('refreshing') : t('refresh')}
+      </button>
+    </div>
+  );
+
+  // No snapshot at all — nothing to show but a prompt to open ARGEPORTAL.
+  if (!snapshot || !result) {
+    return (
+      <div className={styles.app}>
+        {statusBar}
+        <div className={styles.empty}>
+          <span>{portalStatus === 'not-found' ? t('notFoundEmpty') : t('loading')}</span>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  const data = result.data;
   const {
     weekTargetH,
     todayH,
@@ -173,12 +172,11 @@ export function Panel() {
     shortDays,
     exitRemainingH,
     exitRemainingM,
-    selectMonthWarning,
-    leaveData,
   } = data;
 
   const isCurrentWeek = weekOffset === 0;
-  const today = dayjs();
+  const today = dayjs(now);
+  const monthStart = today.startOf('month');
 
   // Derived weekly values
   const weekTotalWithTodayMin = weekTotalMin + todayH * 60 + todayM;
@@ -210,7 +208,6 @@ export function Panel() {
     exitValueColor = '#10b981';
   }
 
-  // Exit tooltip
   const exitTooltip = weeklyExitStr
     ? t('exitTimeTipWithWeek', { wt: weeklyExitStr })
     : today.day() === 5
@@ -218,19 +215,21 @@ export function Panel() {
       : t('exitTimeTip');
 
   return (
-    <div ref={panelRef} className={styles.panel}>
+    <div className={styles.app}>
       <WeekNav
         weekOffset={weekOffset}
         monthStart={monthStart}
-        disabled={isLoading}
-        panelRef={panelRef}
+        disabled={refreshing}
         calcMode={calcMode}
-        onPrev={() => { if (!isLoading) setWeekOffset((o) => o - 1); }}
-        onNext={() => { if (!isLoading) setWeekOffset((o) => o + 1); }}
         onCalcModeToggle={handleCalcModeToggle}
+        onPrev={() => { if (!refreshing) setWeekOffset((o) => o - 1); }}
+        onNext={() => { if (!refreshing) setWeekOffset((o) => o + 1); }}
       />
 
-      {selectMonthWarning && <Warning text={t('selectMonthFirst')} />}
+      {statusBar}
+
+      {stale && <Warning text={t('staleWarning')} />}
+      {portalStatus === 'not-found' && !stale && <Warning text={t('notFoundCached')} />}
 
       {/* Today section */}
       {isCurrentWeek && firstRecord && today.isSame(dayjs(firstRecord), 'day') && (
@@ -339,14 +338,12 @@ export function Panel() {
             const m = mins % 60;
             const parts = date.split('-');
             const fmtDate = `${parts[2]}.${parts[1]}`;
-            return (
-              <Warning key={date} text={t('shortDayWarning', { d: fmtDate, h, m })} />
-            );
+            return <Warning key={date} text={t('shortDayWarning', { d: fmtDate, h, m })} />;
           })}
         </>
       )}
 
-      <LeaveInputs weekKey={weekKey} disabled={isLoading} onLeaveChange={handleLeaveChange} />
+      <LeaveInputs key={weekKey} data={leaveData ?? DEFAULT_LEAVE} disabled={refreshing} onLeaveChange={handleLeaveChange} />
       <Footer />
     </div>
   );

@@ -45,5 +45,12 @@
   "calcModeSessionsLabel": "∑ Seanslar",
   "calcModeSpanLabel": "İlk→Son",
   "calcModeSessionsTip": "Günlük tüm çalışma seanslarının toplamı.",
-  "calcModeSpanTip": "İlk giriş → son çıkış arası süre (molalar dahil)."
+  "calcModeSpanTip": "İlk giriş → son çıkış arası süre (molalar dahil).",
+  "refresh": "↻ Yenile",
+  "refreshing": "Yenileniyor…",
+  "lastUpdated": "Güncelleme {t}",
+  "noData": "Henüz veri yok",
+  "notFoundEmpty": "Bu sekmede ARGEPORTAL bulunamadı. ARGEPORTAL'ı açıp Yenile'ye basın.",
+  "notFoundCached": "⚠️ Bu sekmede ARGEPORTAL bulunamadı — son kaydedilen veri gösteriliyor. Güncellemek için ARGEPORTAL'ı açıp Yenile'ye basın.",
+  "staleWarning": "⚠️ Bu veri bugüne ait değil. Güncellemek için ARGEPORTAL'ı açıp Yenile'ye basın."
 }

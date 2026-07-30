@@ -45,5 +45,12 @@
   "calcModeSessionsLabel": "∑ Sessions",
   "calcModeSpanLabel": "First→Last",
   "calcModeSessionsTip": "Sum of all individual work sessions per day.",
-  "calcModeSpanTip": "First entry → last exit per day (includes breaks)."
+  "calcModeSpanTip": "First entry → last exit per day (includes breaks).",
+  "refresh": "↻ Refresh",
+  "refreshing": "Refreshing…",
+  "lastUpdated": "Updated {t}",
+  "noData": "No data yet",
+  "notFoundEmpty": "ARGEPORTAL not found on this tab. Open ARGEPORTAL, then press Refresh.",
+  "notFoundCached": "⚠️ ARGEPORTAL not found on this tab — showing the last saved data. Open ARGEPORTAL and Refresh to update.",
+  "staleWarning": "⚠️ This data isn't from today. Open ARGEPORTAL and Refresh to update."
 }

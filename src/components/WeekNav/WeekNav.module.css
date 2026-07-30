@@ -2,20 +2,24 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: 8px;
   background-color: #111;
-  padding: 10px 14px;
-  cursor: grab;
+  padding: 10px 12px;
   user-select: none;
-}
-
-.nav:active {
-  cursor: grabbing;
 }
 
 .label {
   color: #fff;
   font-weight: 600;
   font-size: 12px;
+  white-space: nowrap;
+  text-align: center;
+  flex: 1 1 auto;
+  /* Let the label shrink/ellipsis instead of pushing the nav buttons off-screen. */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .btn {
@@ -27,6 +31,8 @@
   padding: 4px 12px;
   font-size: 12px;
   font-family: inherit;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .btn:disabled {
@@ -44,6 +50,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
 }
 
 .modeField {

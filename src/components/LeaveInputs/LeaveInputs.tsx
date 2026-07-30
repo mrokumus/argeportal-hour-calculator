@@ -1,18 +1,16 @@
 import { useRef } from 'react';
 import type { LeaveData } from '../../types';
-import { getLeaveData, saveLeaveData } from '../../lib/storage';
 import { formatOOO, parseOOO } from '../../lib/time-utils';
 import { t } from '../../lib/i18n';
 import styles from './LeaveInputs.module.css';
 
 interface Props {
-  weekKey: string;
+  data: LeaveData;
   disabled: boolean;
   onLeaveChange: (data: LeaveData) => void;
 }
 
-export function LeaveInputs({ weekKey, disabled, onLeaveChange }: Props) {
-  const data = getLeaveData(weekKey);
+export function LeaveInputs({ data, disabled, onLeaveChange }: Props) {
   const leaveRef = useRef<HTMLInputElement>(null);
   const oooRef = useRef<HTMLInputElement>(null);
 
@@ -25,19 +23,13 @@ export function LeaveInputs({ weekKey, disabled, onLeaveChange }: Props) {
 
   function handleLeaveChange() {
     if (disabled) return;
-    const values = getInputValues();
-    const updated: LeaveData = { ...values, autoDetected: false };
-    saveLeaveData(weekKey, updated);
-    onLeaveChange(updated);
+    // Editing the leave count manually disables auto-detection for this week.
+    onLeaveChange({ ...getInputValues(), autoDetected: false });
   }
 
   function handleOooChange() {
     if (disabled) return;
-    const values = getInputValues();
-    const current = getLeaveData(weekKey);
-    const updated: LeaveData = { ...values, autoDetected: current.autoDetected };
-    saveLeaveData(weekKey, updated);
-    onLeaveChange(updated);
+    onLeaveChange({ ...getInputValues(), autoDetected: data.autoDetected });
   }
 
   return (

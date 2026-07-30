@@ -9,7 +9,7 @@ export default defineConfig({
     name: 'PDKS Time Calculator',
     version,
     description: 'Shows working hours summary on PDKS Giriş Çıkış Bilgileri panel',
-    permissions: ['activeTab', 'scripting'],
+    permissions: ['activeTab', 'scripting', 'storage'],
     host_permissions: ['https://raw.githubusercontent.com/*'],
     ...(browser === 'firefox' && {
       browser_specific_settings: {

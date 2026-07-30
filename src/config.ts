@@ -13,9 +13,6 @@ export const SELECTOR_PDKS_FOLDER = 'li.sub_folder > a';
 /** PDKS entry/exit menu folder element ID */
 export const MENU_FOLDER_ID = 'menu-folder-28';
 
-/** Shadow host ID — used as a double-run guard */
-export const PANEL_HOST_ID = 'pdks-shadow-host';
-
 /** localStorage key prefix */
 export const STORAGE_PREFIX = 'pdks_';
 
@@ -43,5 +40,8 @@ export const MENU_CARD_CLICK_DELAY_MS = 500;
 /** GitHub repository path used for version checks */
 export const GITHUB_REPO = 'mrokumus/argeportal-hour-calculator';
 
-/** localStorage key for calculation mode ('sessions' | 'span') */
+/** Storage key for calculation mode ('sessions' | 'span') */
 export const STORAGE_KEY_CALC_MODE = `${STORAGE_PREFIX}calc_mode`;
+
+/** Storage key for the once-a-day parsed snapshot */
+export const STORAGE_KEY_SNAPSHOT = `${STORAGE_PREFIX}snapshot`;
