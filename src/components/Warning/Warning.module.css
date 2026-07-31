@@ -1,9 +1,12 @@
 .warning {
-  padding: 5px 12px 5px 10px;
-  font-size: 11px;
-  color: #92400e;
-  background-color: #fffbeb;
-  border-left: 3px solid #f59e0b;
-  margin: 2px 0;
-  line-height: 1.4;
+  margin: 8px 16px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 9px 12px;
+  border-radius: 11px;
+  font-size: 12px;
+  line-height: 1.45;
+  background: var(--amber-soft);
+  color: color-mix(in srgb, var(--amber) 82%, var(--text));
 }

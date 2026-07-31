@@ -4,7 +4,7 @@
   justify-content: space-between;
   flex-wrap: nowrap;
   gap: 8px;
-  background-color: #111;
+  background-color: var(--nav);
   padding: 10px 12px;
   user-select: none;
 }

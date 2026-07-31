@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import type { LeaveData } from '../../types';
 import { formatOOO, parseOOO } from '../../lib/time-utils';
 import { t } from '../../lib/i18n';
@@ -13,6 +13,18 @@ interface Props {
 export function LeaveInputs({ data, disabled, onLeaveChange }: Props) {
   const leaveRef = useRef<HTMLInputElement>(null);
   const oooRef = useRef<HTMLInputElement>(null);
+
+  // The inputs are uncontrolled (so partial OOO typing like "1:" isn't fought).
+  // Sync them when the data changes externally — a new week, a loaded scenario,
+  // or auto-detected leave — but never while the field is focused.
+  useEffect(() => {
+    if (leaveRef.current && document.activeElement !== leaveRef.current) {
+      leaveRef.current.value = String(data.leave);
+    }
+    if (oooRef.current && document.activeElement !== oooRef.current) {
+      oooRef.current.value = formatOOO(data.ooo);
+    }
+  }, [data.leave, data.ooo]);
 
   function getInputValues(): Omit<LeaveData, 'autoDetected'> {
     return {
@@ -32,6 +44,16 @@ export function LeaveInputs({ data, disabled, onLeaveChange }: Props) {
     onLeaveChange({ ...getInputValues(), autoDetected: data.autoDetected });
   }
 
+  // On blur, re-assert the current data (normalises the field and recovers from
+  // an external change that arrived while this field was focused, which the
+  // focus-guarded sync effect skips).
+  function syncLeave() {
+    if (leaveRef.current) leaveRef.current.value = String(data.leave);
+  }
+  function syncOoo() {
+    if (oooRef.current) oooRef.current.value = formatOOO(data.ooo);
+  }
+
   return (
     <div className={styles.section}>
       <div className={styles.field}>
@@ -46,6 +68,7 @@ export function LeaveInputs({ data, disabled, onLeaveChange }: Props) {
           disabled={disabled}
           className={styles.input}
           onChange={handleLeaveChange}
+          onBlur={syncLeave}
         />
         <span className={styles.unit}>{t('leaveDays')}</span>
       </div>
@@ -65,6 +88,7 @@ export function LeaveInputs({ data, disabled, onLeaveChange }: Props) {
           disabled={disabled}
           className={`${styles.input} ${styles.ooo}`}
           onChange={handleOooChange}
+          onBlur={syncOoo}
         />
       </div>
     </div>

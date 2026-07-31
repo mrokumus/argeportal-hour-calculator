@@ -11,22 +11,19 @@ import {
   saveSnapshot,
 } from '../../lib/storage';
 import { requestParse } from '../../lib/refresh';
-import {
-  calculateRemaining,
-  calculateTime,
-  getMondayOfWeek,
-} from '../../lib/time-utils';
+import { calculateRemaining, calculateTime, getMondayOfWeek } from '../../lib/time-utils';
 import { t } from '../../lib/i18n';
 import { DAILY_TARGET_HOURS, DAILY_CAP_HOURS, REFRESH_INTERVAL_MS } from '../../config';
 import { WeekNav } from '../../components/WeekNav/WeekNav';
-import { StatsRow } from '../../components/StatsRow/StatsRow';
-import { ProgressBar } from '../../components/ProgressBar/ProgressBar';
+import { Ring } from '../../components/Ring/Ring';
 import { Warning } from '../../components/Warning/Warning';
 import { LeaveInputs } from '../../components/LeaveInputs/LeaveInputs';
 import { Footer } from '../../components/Footer/Footer';
 import styles from './App.module.css';
 
 const DEFAULT_LEAVE: LeaveData = { leave: 0, ooo: 0, autoDetected: true };
+
+const pad = (n: number) => String(n).padStart(2, '0');
 
 function getWeekKey(offset: number): string {
   return getMondayOfWeek(offset).toISOString().slice(0, 10);
@@ -38,32 +35,64 @@ function formatDuration(h: number, m: number): string {
   return `${m} ${t('minutes')}`;
 }
 
+function formatCompactDuration(totalMinutes: number): string {
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  if (h > 0 && m > 0) return `+${h}:${pad(m)}`;
+  if (h > 0) return `+${h} ${t('hoursUnit')}`;
+  return `+${m} ${t('minutes')}`;
+}
+
+function Row({ k, v, sub, color }: { k: string; v: string; sub?: boolean; color?: string }) {
+  return (
+    <div className={`${styles.row} ${sub ? styles.rowSub : ''}`}>
+      <span className={styles.rowK}>{k}</span>
+      <span className={styles.rowV} style={color ? { color } : undefined}>{v}</span>
+    </div>
+  );
+}
+
 export function App() {
   const [booted, setBooted] = useState(false);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [calcMode, setCalcMode] = useState<CalcMode>('sessions');
   const [weekOffset, setWeekOffset] = useState(0);
   const [leaveData, setLeaveData] = useState<LeaveData | null>(null);
+  const [leaveWeekKey, setLeaveWeekKey] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [portalStatus, setPortalStatus] = useState<'ok' | 'not-found' | null>(null);
   const [now, setNow] = useState(Date.now());
+  const [todayRingPercent, setTodayRingPercent] = useState(false);
+  const [weekRingPercent, setWeekRingPercent] = useState(false);
+  const [devIndex, setDevIndex] = useState(0);
+  const [devLabel, setDevLabel] = useState('');
+  const [devActive, setDevActive] = useState(false);
 
   const weekKey = getWeekKey(weekOffset);
 
   async function refresh() {
     setRefreshing(true);
-    const res = await requestParse();
-    if (res.ok) {
-      await saveSnapshot(res.snapshot);
-      setSnapshot(res.snapshot);
-      setPortalStatus('ok');
-    } else {
+    try {
+      const res = await requestParse();
+      if (res.ok) {
+        await saveSnapshot(res.snapshot);
+        const storedLeave = await getLeaveData(weekKey);
+        setSnapshot(res.snapshot);
+        setLeaveData(storedLeave);
+        setLeaveWeekKey(weekKey);
+        setDevActive(false);
+        setDevLabel('');
+        setPortalStatus('ok');
+      } else {
+        setPortalStatus('not-found');
+      }
+    } catch {
       setPortalStatus('not-found');
+    } finally {
+      setRefreshing(false);
     }
-    setRefreshing(false);
   }
 
-  // Initial load: read cached state, then attempt a fresh parse of the active tab.
   useEffect(() => {
     (async () => {
       const [mode, snap] = await Promise.all([getCalcMode(), getSnapshot()]);
@@ -74,36 +103,36 @@ export function App() {
     })();
   }, []);
 
-  // Load the leave/OOO record for whichever week is shown.
   useEffect(() => {
     if (!booted) return;
     let active = true;
     getLeaveData(weekKey).then((d) => {
-      if (active) setLeaveData(d);
+      if (active) {
+        setLeaveData(d);
+        setLeaveWeekKey(weekKey);
+      }
     });
     return () => {
       active = false;
     };
   }, [booted, weekKey]);
 
-  // Tick every minute so "today" keeps counting while the popup is open.
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), REFRESH_INTERVAL_MS);
     return () => clearInterval(timer);
   }, []);
 
   const result = useMemo(() => {
-    if (!snapshot || !leaveData) return null;
+    if (!snapshot || !leaveData || leaveWeekKey !== weekKey) return null;
     return computeWeekData(snapshot, weekOffset, calcMode, leaveData, dayjs(now));
-  }, [snapshot, leaveData, weekOffset, calcMode, now]);
+  }, [snapshot, leaveData, leaveWeekKey, weekKey, weekOffset, calcMode, now]);
 
-  // Persist auto-detected leave changes back to storage.
   useEffect(() => {
-    if (result?.leaveDataChanged) {
+    if (result?.leaveDataChanged && !devActive) {
       saveLeaveData(weekKey, result.data.leaveData);
       setLeaveData(result.data.leaveData);
     }
-  }, [result, weekKey]);
+  }, [result, weekKey, devActive]);
 
   function handleCalcModeToggle() {
     const next: CalcMode = calcMode === 'sessions' ? 'span' : 'sessions';
@@ -112,9 +141,50 @@ export function App() {
   }
 
   function handleLeaveChange(updated: LeaveData) {
-    saveLeaveData(weekKey, updated);
+    if (!devActive) saveLeaveData(weekKey, updated);
     setLeaveData(updated);
+    setLeaveWeekKey(weekKey);
   }
+
+  async function loadNextSample() {
+    const { buildDevScenarios } = await import('../../lib/devSamples');
+    const scenarios = buildDevScenarios(dayjs());
+    const scn = scenarios[devIndex % scenarios.length];
+    setWeekOffset(0);
+    setSnapshot(scn.snapshot);
+    setLeaveData(scn.leave);
+    setLeaveWeekKey(getWeekKey(0));
+    setPortalStatus('ok');
+    setDevLabel(scn.name);
+    setDevActive(true);
+    setDevIndex((i) => i + 1);
+  }
+
+  async function restoreRealData() {
+    const currentWeekKey = getWeekKey(0);
+    const [snap, leave] = await Promise.all([getSnapshot(), getLeaveData(currentWeekKey)]);
+    setWeekOffset(0);
+    setSnapshot(snap);
+    setLeaveData(leave);
+    setLeaveWeekKey(currentWeekKey);
+    setDevActive(false);
+    setDevLabel('');
+    setPortalStatus(null);
+  }
+
+  const devBar = import.meta.env.DEV ? (
+    <div className={styles.devBar}>
+      <button className={styles.devBtn} type="button" onClick={loadNextSample}>
+        🧪 Örnek veri
+      </button>
+      <span className={styles.devLabel}>{devLabel || 'senaryoları gez'}</span>
+      {devActive && (
+        <button className={styles.devBtn} type="button" onClick={restoreRealData}>
+          {t('restoreRealData')}
+        </button>
+      )}
+    </div>
+  ) : null;
 
   if (!booted) {
     return (
@@ -128,25 +198,28 @@ export function App() {
   }
 
   const stale = snapshot ? snapshot.capturedDay !== dayjs(now).format('YYYY-MM-DD') : false;
+  const cachedAfterFailedRefresh = portalStatus === 'not-found' && !!snapshot && !stale;
   const updatedText = snapshot
-    ? stale
-      ? t('lastUpdated', { t: dayjs(snapshot.capturedAt).format('DD.MM HH:mm') })
-      : t('lastUpdated', { t: dayjs(snapshot.capturedAt).format('HH:mm') })
-    : '';
+    ? t('lastUpdated', {
+        t: stale
+          ? dayjs(snapshot.capturedAt).format('DD.MM HH:mm')
+          : dayjs(snapshot.capturedAt).format('HH:mm'),
+      })
+    : t('noData');
 
   const statusBar = (
     <div className={styles.statusBar}>
-      <span className={`${styles.updated} ${stale ? styles.updatedStale : ''}`}>
-        {snapshot ? updatedText : t('noData')}
+      <span className={`${styles.stamp} ${stale ? styles.stampStale : cachedAfterFailedRefresh ? styles.stampWarning : ''}`}>
+        <span className={`${styles.dot} ${stale ? styles.dotStale : cachedAfterFailedRefresh ? styles.dotWarning : ''}`} />
+        {updatedText}
       </span>
-      <button className={styles.refreshBtn} onClick={refresh} disabled={refreshing}>
+      <button className={styles.refresh} type="button" onClick={refresh} disabled={refreshing}>
         {refreshing && <span className={styles.refreshSpinner} />}
         {refreshing ? t('refreshing') : t('refresh')}
       </button>
     </div>
   );
 
-  // No snapshot at all — nothing to show but a prompt to open ARGEPORTAL.
   if (!snapshot || !result) {
     return (
       <div className={styles.app}>
@@ -154,6 +227,7 @@ export function App() {
         <div className={styles.empty}>
           <span>{portalStatus === 'not-found' ? t('notFoundEmpty') : t('loading')}</span>
         </div>
+        {devBar}
         <Footer />
       </div>
     );
@@ -178,36 +252,60 @@ export function App() {
   const today = dayjs(now);
   const monthStart = today.startOf('month');
 
-  // Derived weekly values
-  const weekTotalWithTodayMin = weekTotalMin + todayH * 60 + todayM;
+  // ---- today ring ----
+  const todayMin = todayH * 60 + todayM;
+  const cappedTodayMin = Math.min(todayMin, DAILY_CAP_HOURS * 60);
+  const todayDone = todayRemainingH === 0 && todayRemainingM === 0;
+  const hasTodayRing = isCurrentWeek && !!firstRecord && today.isSame(dayjs(firstRecord), 'day');
+
+  // ---- week ring ----
+  const weekTotalWithTodayMin = weekTotalMin + cappedTodayMin;
   const wTotalH = weekTotalWithTodayMin / 60;
   const [wh, wm] = calculateTime(weekTotalMin / 60);
   const [wth, wtm] = calculateTime(wTotalH);
   const [rwth, rwtm] = calculateRemaining(wTotalH, true, weekTargetH);
-  const [r36h, r36m] = calculateRemaining(wTotalH, true, 36);
-  const [r27h, r27m] = calculateRemaining(wTotalH, true, 27);
-  const [r18h, r18m] = calculateRemaining(wTotalH, true, 18);
+  const [pastRemH, pastRemM] = calculateRemaining(weekTotalMin / 60, true, weekTargetH);
+  const weekWorkedMin = isCurrentWeek ? weekTotalWithTodayMin : weekTotalMin;
+  const weekPercent = weekTargetH > 0 ? (weekWorkedMin / 60 / weekTargetH) * 100 : 0;
+  const [weekRemH, weekRemM] = isCurrentWeek ? [rwth, rwtm] : [pastRemH, pastRemM];
+  const weekDone = weekRemH === 0 && weekRemM === 0;
+  const weekTimeText = isCurrentWeek ? `${wth}:${pad(wtm)}` : `${wh}:${pad(wm)}`;
+  const weekTargetText = `${parseFloat(weekTargetH.toFixed(1))} ${t('hoursUnit')}`;
 
-  const todayCapacityMins = Math.max(0, DAILY_CAP_HOURS * 60 - (todayH * 60 + todayM));
-  const withTodayExit = (duration: string, h: number, m: number): string => {
-    if (h * 60 + m > todayCapacityMins) return duration;
+  // ---- alternative weekly targets (36/27/18) ----
+  // On partial weeks (target < 45h) show every alternative below the current
+  // target as a group, with "done ✓" for the ones already reached.
+  const todayCapacityMins = Math.max(0, DAILY_CAP_HOURS * 60 - todayMin);
+  const withExit = (h: number, m: number): string => {
+    const base = formatDuration(h, m);
+    if (h * 60 + m > todayCapacityMins) return base;
     const exit = today.add(h, 'h').add(m, 'm');
-    if (!exit.isSame(today, 'day')) return duration;
-    return `${duration}  (${String(exit.hour()).padStart(2, '0')}:${String(exit.minute()).padStart(2, '0')})`;
+    if (!exit.isSame(today, 'day')) return base;
+    return `${base}  (${pad(exit.hour())}:${pad(exit.minute())})`;
   };
+  const altTargets =
+    isCurrentWeek && weekTargetH < 45
+      ? [36, 27, 18]
+          .filter((x) => x < weekTargetH)
+          .map((x) => {
+            const [h, m] = calculateRemaining(wTotalH, true, x);
+            return { x, h, m, done: h === 0 && m === 0 };
+          })
+      : [];
 
-  // Exit time value
-  let exitValueText = '';
-  let exitValueColor = '#111';
+  // ---- exit card ----
+  let exitBig = '';
+  let exitHint: string | null = null;
+  let exitColor = 'var(--text)';
   if (exitRemainingH !== 0 || exitRemainingM !== 0) {
     const lt = today.add(exitRemainingH, 'h').add(exitRemainingM, 'm');
-    const dailyStr = `~ ${String(lt.hour()).padStart(2, '0')}:${String(lt.minute()).padStart(2, '0')}`;
-    exitValueText = weeklyExitStr ? `${dailyStr}  (${t('weekShort')}: ${weeklyExitStr})` : dailyStr;
+    const exitClock = `${pad(lt.hour())}:${pad(lt.minute())}`;
+    exitBig = lt.isSame(today, 'day') ? `~${exitClock}` : t('tomorrowAt', { t: exitClock });
+    if (weeklyExitStr) exitHint = t('weekTargetHint', { wt: weeklyExitStr });
   } else {
-    exitValueText = t('canLeave');
-    exitValueColor = '#10b981';
+    exitBig = t('canLeave');
+    exitColor = 'var(--accent)';
   }
-
   const exitTooltip = weeklyExitStr
     ? t('exitTimeTipWithWeek', { wt: weeklyExitStr })
     : today.day() === 5
@@ -231,119 +329,97 @@ export function App() {
       {stale && <Warning text={t('staleWarning')} />}
       {portalStatus === 'not-found' && !stale && <Warning text={t('notFoundCached')} />}
 
-      {/* Today section */}
-      {isCurrentWeek && firstRecord && today.isSame(dayjs(firstRecord), 'day') && (
-        <>
-          <StatsRow label={t('today')} value={formatDuration(todayH, todayM)} />
-          <StatsRow
-            label={t('todayRemaining')}
-            value={formatDuration(todayRemainingH, todayRemainingM)}
-            color="#f59e0b"
+      <div className={`${styles.rings} ${hasTodayRing ? '' : styles.ringsSingle}`}>
+        {hasTodayRing && (
+          <Ring
+            label={t('today')}
+            timeText={`${todayH}:${pad(todayM)}`}
+            targetText={`${DAILY_TARGET_HOURS} ${t('hoursUnit')}`}
+            percent={(todayMin / (DAILY_TARGET_HOURS * 60)) * 100}
+            chipText={todayDone ? t('done') : t('remainingChip', { h: todayRemainingH, m: todayRemainingM })}
+            chipTone={todayDone ? 'green' : 'amber'}
+            showPercent={todayRingPercent}
+            onToggle={() => setTodayRingPercent((v) => !v)}
+            overflowText={
+              todayMin > DAILY_TARGET_HOURS * 60
+                ? formatCompactDuration(todayMin - DAILY_TARGET_HOURS * 60)
+                : undefined
+            }
           />
-          {todayH * 60 + todayM > DAILY_TARGET_HOURS * 60 && (() => {
-            const [oh, om] = calculateTime((todayH * 60 + todayM) / 60 - DAILY_TARGET_HOURS);
-            return (
-              <StatsRow
-                label={t('todayOvertime')}
-                value={`+${formatDuration(oh, om)}`}
-                small
-                color="#6b7280"
-              />
-            );
-          })()}
-          {todayH > DAILY_CAP_HOURS && (
-            <StatsRow label={t('todayCapNote')} value="11h" small color="#ef4444" />
-          )}
-        </>
-      )}
+        )}
+        <Ring
+          label={isCurrentWeek ? t('thisWeek') : t('weekTotal')}
+          timeText={weekTimeText}
+          targetText={weekTargetText}
+          percent={weekPercent}
+          chipText={weekDone ? t('done') : t('remainingChip', { h: weekRemH, m: weekRemM })}
+          chipTone={weekDone ? 'green' : 'amber'}
+          showPercent={weekRingPercent}
+          onToggle={() => setWeekRingPercent((v) => !v)}
+          overflowText={
+            weekWorkedMin > weekTargetH * 60
+              ? formatCompactDuration(weekWorkedMin - weekTargetH * 60)
+              : undefined
+          }
+        />
+      </div>
 
-      {/* Week section */}
-      {weekTotalWithTodayMin > 0 && (
-        <>
-          <div className={styles.divider} />
-          {isCurrentWeek ? (
-            <>
-              <StatsRow label={t('thisWeek')} value={formatDuration(wh, wm)} />
-              <StatsRow label={t('todayPlusWeek')} value={formatDuration(wth, wtm)} />
-              <ProgressBar percent={(wTotalH / weekTargetH) * 100} targetH={weekTargetH} />
-              <StatsRow
-                label={t('weekRemaining')}
-                value={rwth === 0 && rwtm === 0 ? t('done') : formatDuration(rwth, rwtm)}
-                color={rwth === 0 && rwtm === 0 ? '#10b981' : '#f59e0b'}
-              />
-              {(r36h > 0 || r36m > 0) && Math.abs(36 - weekTargetH) < 9 && (
-                <StatsRow
-                  label={t('for36h')}
-                  value={withTodayExit(formatDuration(r36h, r36m), r36h, r36m)}
-                  small
-                />
-              )}
-              {(r27h > 0 || r27m > 0) && Math.abs(27 - weekTargetH) < 9 && (
-                <StatsRow
-                  label={t('for27h')}
-                  value={withTodayExit(formatDuration(r27h, r27m), r27h, r27m)}
-                  small
-                />
-              )}
-              {(r18h > 0 || r18m > 0) && Math.abs(18 - weekTargetH) < 9 && (
-                <StatsRow
-                  label={t('for18h')}
-                  value={withTodayExit(formatDuration(r18h, r18m), r18h, r18m)}
-                  small
-                />
-              )}
-            </>
-          ) : (
-            <>
-              <StatsRow label={t('weekTotal')} value={formatDuration(wh, wm)} />
-              <ProgressBar percent={(weekTotalMin / 60 / weekTargetH) * 100} targetH={weekTargetH} />
-              {(() => {
-                const [rwh2, rwm2] = calculateRemaining(weekTotalMin / 60, true, weekTargetH);
-                const done = rwh2 === 0 && rwm2 === 0;
-                return (
-                  <StatsRow
-                    label={t('target', { h: weekTargetH })}
-                    value={done ? t('targetDone') : t('targetMissing', { h: rwh2, m: rwm2 })}
-                    color={done ? '#10b981' : '#ef4444'}
-                  />
-                );
-              })()}
-            </>
-          )}
-        </>
-      )}
-
-      {/* Exit time */}
-      {isCurrentWeek && firstRecord && (
-        <>
-          <div className={styles.divider} />
-          <div className={styles.exitRow}>
-            <div className={styles.exitLabelWrap}>
-              <span className={styles.exitLabel}>{t('exitTime')}</span>
-              <div className={styles.exitTooltip}>{exitTooltip}</div>
-            </div>
-            <span className={styles.exitValue} style={{ color: exitValueColor }}>
-              {exitValueText}
-            </span>
+      {hasTodayRing && (
+        <div className={styles.exit} title={exitTooltip}>
+          <div>
+            <div className={styles.exitLabel}>{t('exitTime')}</div>
+            {exitHint && <div className={styles.exitHint}>{exitHint}</div>}
+            <div className={styles.exitBasis}>{t('exitBasis')}</div>
           </div>
-        </>
+          <div className={styles.exitTime} style={{ color: exitColor }}>{exitBig}</div>
+        </div>
       )}
 
-      {/* Short day warnings */}
-      {shortDays.length > 0 && (
-        <>
-          <div className={styles.divider} />
-          {shortDays.map(({ date, mins }) => {
-            const h = Math.floor(mins / 60);
-            const m = mins % 60;
-            const parts = date.split('-');
-            const fmtDate = `${parts[2]}.${parts[1]}`;
-            return <Warning key={date} text={t('shortDayWarning', { d: fmtDate, h, m })} />;
-          })}
-        </>
+      <div className={styles.rows}>
+        {isCurrentWeek ? (
+          <>
+            {hasTodayRing && <Row k={t('todayPlusWeek')} v={formatDuration(wth, wtm)} />}
+            {weekTotalMin > 0 && <Row k={t('completedDays')} v={formatDuration(wh, wm)} />}
+            {todayMin > DAILY_TARGET_HOURS * 60 && (() => {
+              const [oh, om] = calculateTime(todayMin / 60 - DAILY_TARGET_HOURS);
+              return <Row k={t('todayOvertime')} v={`+${formatDuration(oh, om)}`} sub color="var(--muted)" />;
+            })()}
+            {todayMin > DAILY_CAP_HOURS * 60 && (
+              <Row k={t('todayCapNote')} v="11h" sub color="var(--red)" />
+            )}
+          </>
+        ) : (
+          <Row
+            k={t('target', { h: parseFloat(weekTargetH.toFixed(1)) })}
+            v={weekDone ? t('targetDone') : t('targetMissing', { h: weekRemH, m: weekRemM })}
+            color={weekDone ? 'var(--accent)' : 'var(--red)'}
+          />
+        )}
+      </div>
+
+      {altTargets.length > 0 && (
+        <div className={styles.altCard}>
+          <div className={styles.altHead}>{t('altTargets')}</div>
+          {altTargets.map(({ x, h, m, done }) => (
+            <div key={x} className={styles.altRow}>
+              <span className={styles.altK}>{t('forHours', { h: x })}</span>
+              <span className={styles.altV} style={done ? { color: 'var(--accent)' } : undefined}>
+                {done ? t('altDone') : withExit(h, m)}
+              </span>
+            </div>
+          ))}
+        </div>
       )}
+
+      {shortDays.length > 0 && shortDays.map(({ date, mins }) => {
+        const h = Math.floor(mins / 60);
+        const m = mins % 60;
+        const parts = date.split('-');
+        return <Warning key={date} text={t('shortDayWarning', { d: `${parts[2]}.${parts[1]}`, h, m })} />;
+      })}
 
       <LeaveInputs key={weekKey} data={leaveData ?? DEFAULT_LEAVE} disabled={refreshing} onLeaveChange={handleLeaveChange} />
+      {devBar}
       <Footer />
     </div>
   );

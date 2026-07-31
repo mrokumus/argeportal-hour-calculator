@@ -18,9 +18,6 @@
   "exitTimeTipWithWeek": "Time to complete today's 9h.\n(week: {wt}) — time to finish the full week target today.",
   "weekShort": "week",
   "canLeave": "You can leave! ✅",
-  "for36h": "For 36h",
-  "for27h": "For 27h",
-  "for18h": "For 18h",
   "prevBtn": "◀ Prev",
   "nextBtn": "Next ▶",
   "thisWeekNav": "This Week  {r}",
@@ -52,5 +49,14 @@
   "noData": "No data yet",
   "notFoundEmpty": "ARGEPORTAL not found on this tab. Open ARGEPORTAL, then press Refresh.",
   "notFoundCached": "⚠️ ARGEPORTAL not found on this tab — showing the last saved data. Open ARGEPORTAL and Refresh to update.",
-  "staleWarning": "⚠️ This data isn't from today. Open ARGEPORTAL and Refresh to update."
+  "staleWarning": "⚠️ This data isn't from today. Open ARGEPORTAL and Refresh to update.",
+  "remainingChip": "{h}h {m}m left",
+  "weekTargetHint": "To weekly target: {wt}",
+  "completedDays": "Completed days",
+  "altTargets": "Alternative targets",
+  "forHours": "For {h}h",
+  "altDone": "done ✓",
+  "tomorrowAt": "tomorrow ~{t}",
+  "exitBasis": "From first check-in",
+  "restoreRealData": "Restore real data"
 }

@@ -2,18 +2,20 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 7px 16px;
-  border-top: 1px solid #f0f0f0;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  font-size: 11.5px;
 }
 
 .version {
-  color: #ccc;
-  font-size: 11px;
+  color: var(--faint);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
 }
 
 .link {
-  color: #bbb;
-  font-size: 11px;
+  color: var(--muted);
+  font-size: 11.5px;
   text-decoration: none;
   cursor: pointer;
 }

@@ -18,9 +18,6 @@
   "exitTimeTipWithWeek": "Bugün 9 saati tamamlamak için çıkış saati.\n(hafta: {wt}) — haftalık toplam hedefi bugün bitirecek saat.",
   "weekShort": "hafta",
   "canLeave": "Çıkış Yapabilirsiniz! ✅",
-  "for36h": "36 saat için",
-  "for27h": "27 saat için",
-  "for18h": "18 saat için",
   "prevBtn": "◀ Önceki",
   "nextBtn": "Sonraki ▶",
   "thisWeekNav": "Bu Hafta  {r}",
@@ -52,5 +49,14 @@
   "noData": "Henüz veri yok",
   "notFoundEmpty": "Bu sekmede ARGEPORTAL bulunamadı. ARGEPORTAL'ı açıp Yenile'ye basın.",
   "notFoundCached": "⚠️ Bu sekmede ARGEPORTAL bulunamadı — son kaydedilen veri gösteriliyor. Güncellemek için ARGEPORTAL'ı açıp Yenile'ye basın.",
-  "staleWarning": "⚠️ Bu veri bugüne ait değil. Güncellemek için ARGEPORTAL'ı açıp Yenile'ye basın."
+  "staleWarning": "⚠️ Bu veri bugüne ait değil. Güncellemek için ARGEPORTAL'ı açıp Yenile'ye basın.",
+  "remainingChip": "{h} sa {m} dk kaldı",
+  "weekTargetHint": "Haftalık hedefe: {wt}",
+  "completedDays": "Tamamlanan günler",
+  "altTargets": "Alternatif hedefler",
+  "forHours": "{h} saat için",
+  "altDone": "tamam ✓",
+  "tomorrowAt": "yarın ~{t}",
+  "exitBasis": "İlk girişten itibaren",
+  "restoreRealData": "Gerçek veriye dön"
 }

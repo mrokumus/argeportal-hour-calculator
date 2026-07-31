@@ -116,7 +116,8 @@ export function computeWeekData(
   let exitRemainingM = todayRemainingM;
 
   if (isCurrentWeek && firstRecord) {
-    const weekTotalWithTodayMin = weekTotalMin + todayH * 60 + todayM;
+    const cappedTodayMin = Math.min(todayH * 60 + todayM, DAILY_CAP_HOURS * 60);
+    const weekTotalWithTodayMin = weekTotalMin + cappedTodayMin;
     const wTotalH = weekTotalWithTodayMin / 60;
     const [rwth, rwtm] = calculateRemaining(wTotalH, true, weekTargetH);
 
