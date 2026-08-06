@@ -146,6 +146,32 @@ function scrapeFirstRecord(rows: NodeListOf<Element>, today: dayjs.Dayjs): strin
   return firstRecord ? (firstRecord as dayjs.Dayjs).toISOString() : null;
 }
 
+function scrapeLastRecord(rows: NodeListOf<Element>, today: dayjs.Dayjs): string | null {
+  let lastRecord: dayjs.Dayjs | null = null;
+  rows.forEach((row) => {
+    const raw = (row.querySelector('td:nth-child(6)') as HTMLElement | null)?.innerText;
+    if (!raw) return;
+    const [date, time] = timeNormalize(raw);
+    const punch = dayjs(`${date} ${time}`);
+    if (today.isSame(punch, 'day') && (!lastRecord || punch.isAfter(lastRecord))) {
+      lastRecord = punch;
+    }
+  });
+  return lastRecord ? (lastRecord as dayjs.Dayjs).toISOString() : null;
+}
+
+/** Punches alternate check-in/check-out; an odd count means work is still active. */
+function hasOpenSession(rows: NodeListOf<Element>, today: dayjs.Dayjs): boolean {
+  let todayPunches = 0;
+  rows.forEach((row) => {
+    const raw = (row.querySelector('td:nth-child(6)') as HTMLElement | null)?.innerText;
+    if (!raw) return;
+    const [date] = timeNormalize(raw);
+    if (date === today.format('YYYY-MM-DD')) todayPunches++;
+  });
+  return todayPunches % 2 === 1;
+}
+
 /**
  * Parse the ARGEPORTAL page into a serializable Snapshot. Navigates to the PDKS
  * grid and selects the current month first. Returns { ok: false } (rather than
@@ -175,6 +201,8 @@ export async function parseSnapshot(): Promise<ParseResult> {
       capturedAt: now.toISOString(),
       capturedDay: now.format('YYYY-MM-DD'),
       firstRecordISO: scrapeFirstRecord(punchRows, now),
+      lastRecordISO: scrapeLastRecord(punchRows, now),
+      todayHasOpenSession: hasOpenSession(punchRows, now),
       dailyTotalsSessions: scrapeSessions(tableTwo.querySelectorAll('tbody > tr')),
       dailyTotalsSpan: scrapeSpan(punchRows, monthStart, monthEnd),
     };

@@ -27,6 +27,10 @@ export interface Snapshot {
   capturedDay: string;
   /** First check-in of the captured day (already second-adjusted), ISO — or null. */
   firstRecordISO: string | null;
+  /** Last punch of the captured day, used as the base after check-out. */
+  lastRecordISO?: string | null;
+  /** Whether today's punch list ends with an unmatched check-in. */
+  todayHasOpenSession?: boolean;
   /** Whole-month per-day worked minutes, sessions mode (sum of session columns). */
   dailyTotalsSessions: Record<string, number>;
   /** Whole-month per-day worked minutes, span mode (last punch − first punch). */

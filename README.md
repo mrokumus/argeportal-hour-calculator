@@ -91,16 +91,15 @@ npm install
 
 ### Bumping the version
 
-The version is defined in **one place** — `wxt.config.ts`:
+The version is defined in **one place** — `package.json`:
 
-```ts
-manifest: {
-  version: '1.3.1',   // ← change this
-  ...
+```json
+{
+  "version": "1.5.1"
 }
 ```
 
-Running `npm run zip` / `npm run zip:firefox` after the change will produce files named after the new version (e.g. `pdks-extension-1.3.1-chrome.zip`).
+Running `npm run zip` / `npm run zip:firefox` after the change will produce files named after the new version (e.g. `pdks-extension-1.5.1-chrome.zip`).
 
 ### Project structure
 

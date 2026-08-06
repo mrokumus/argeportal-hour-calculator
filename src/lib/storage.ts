@@ -1,5 +1,12 @@
 import type { CalcMode, LeaveData, Snapshot } from '../types';
-import { STORAGE_KEY_CALC_MODE, STORAGE_KEY_SNAPSHOT, STORAGE_PREFIX } from '../config';
+import {
+  DAILY_CAP_HOURS,
+  DAILY_TARGET_HOURS,
+  STORAGE_KEY_CALC_MODE,
+  STORAGE_KEY_DAILY_TARGET,
+  STORAGE_KEY_SNAPSHOT,
+  STORAGE_PREFIX,
+} from '../config';
 
 const DEFAULT: LeaveData = { leave: 0, ooo: 0, autoDetected: true };
 
@@ -30,6 +37,17 @@ export async function getCalcMode(): Promise<CalcMode> {
 
 export async function saveCalcMode(mode: CalcMode): Promise<void> {
   await browser.storage.local.set({ [STORAGE_KEY_CALC_MODE]: mode });
+}
+
+export async function getDailyTarget(): Promise<number> {
+  const stored = (await browser.storage.local.get(STORAGE_KEY_DAILY_TARGET))[STORAGE_KEY_DAILY_TARGET];
+  return typeof stored === 'number' && stored >= 1 && stored <= DAILY_CAP_HOURS
+    ? stored
+    : DAILY_TARGET_HOURS;
+}
+
+export async function saveDailyTarget(hours: number): Promise<void> {
+  await browser.storage.local.set({ [STORAGE_KEY_DAILY_TARGET]: hours });
 }
 
 export async function getSnapshot(): Promise<Snapshot | null> {

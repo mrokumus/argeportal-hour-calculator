@@ -4,9 +4,11 @@ import type { CalcMode, LeaveData, Snapshot } from '../../types';
 import { computeWeekData } from '../../lib/calc';
 import {
   getCalcMode,
+  getDailyTarget,
   getLeaveData,
   getSnapshot,
   saveCalcMode,
+  saveDailyTarget,
   saveLeaveData,
   saveSnapshot,
 } from '../../lib/storage';
@@ -24,6 +26,22 @@ import styles from './App.module.css';
 const DEFAULT_LEAVE: LeaveData = { leave: 0, ooo: 0, autoDetected: true };
 
 const pad = (n: number) => String(n).padStart(2, '0');
+const EARLIEST_ENTRY_MINUTES = 4 * 60;
+const LATEST_EXIT_MINUTES = 23 * 60 + 59;
+
+function timeToMinutes(value: string): number {
+  const [hours, minutes] = value.split(':').map(Number);
+  return (Number.isFinite(hours) ? hours : 0) * 60 + (Number.isFinite(minutes) ? minutes : 0);
+}
+
+function minutesToTime(value: number): string {
+  return `${pad(Math.floor(value / 60))}:${pad(value % 60)}`;
+}
+
+function clampDesiredExit(value: string, targetMinutes: number): string {
+  const earliestExit = EARLIEST_ENTRY_MINUTES + targetMinutes;
+  return minutesToTime(Math.min(LATEST_EXIT_MINUTES, Math.max(earliestExit, timeToMinutes(value))));
+}
 
 function getWeekKey(offset: number): string {
   return getMondayOfWeek(offset).toISOString().slice(0, 10);
@@ -56,19 +74,21 @@ export function App() {
   const [booted, setBooted] = useState(false);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [calcMode, setCalcMode] = useState<CalcMode>('sessions');
-  const [weekOffset, setWeekOffset] = useState(0);
+  const [dailyTarget, setDailyTarget] = useState(DAILY_TARGET_HOURS);
+  const [desiredExit, setDesiredExit] = useState('15:00');
+  const [desiredExitDraft, setDesiredExitDraft] = useState('15:00');
   const [leaveData, setLeaveData] = useState<LeaveData | null>(null);
   const [leaveWeekKey, setLeaveWeekKey] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [portalStatus, setPortalStatus] = useState<'ok' | 'not-found' | null>(null);
   const [now, setNow] = useState(Date.now());
   const [todayRingPercent, setTodayRingPercent] = useState(false);
-  const [weekRingPercent, setWeekRingPercent] = useState(false);
+  const [weekBreakdown, setWeekBreakdown] = useState(false);
   const [devIndex, setDevIndex] = useState(0);
   const [devLabel, setDevLabel] = useState('');
   const [devActive, setDevActive] = useState(false);
 
-  const weekKey = getWeekKey(weekOffset);
+  const weekKey = getWeekKey(0);
 
   async function refresh() {
     setRefreshing(true);
@@ -95,9 +115,10 @@ export function App() {
 
   useEffect(() => {
     (async () => {
-      const [mode, snap] = await Promise.all([getCalcMode(), getSnapshot()]);
+      const [mode, snap, target] = await Promise.all([getCalcMode(), getSnapshot(), getDailyTarget()]);
       setCalcMode(mode);
       setSnapshot(snap);
+      setDailyTarget(target);
       setBooted(true);
       await refresh();
     })();
@@ -124,8 +145,8 @@ export function App() {
 
   const result = useMemo(() => {
     if (!snapshot || !leaveData || leaveWeekKey !== weekKey) return null;
-    return computeWeekData(snapshot, weekOffset, calcMode, leaveData, dayjs(now));
-  }, [snapshot, leaveData, leaveWeekKey, weekKey, weekOffset, calcMode, now]);
+    return computeWeekData(snapshot, 0, calcMode, leaveData, dayjs(now), dailyTarget);
+  }, [snapshot, leaveData, leaveWeekKey, weekKey, calcMode, now, dailyTarget]);
 
   useEffect(() => {
     if (result?.leaveDataChanged && !devActive) {
@@ -150,7 +171,6 @@ export function App() {
     const { buildDevScenarios } = await import('../../lib/devSamples');
     const scenarios = buildDevScenarios(dayjs());
     const scn = scenarios[devIndex % scenarios.length];
-    setWeekOffset(0);
     setSnapshot(scn.snapshot);
     setLeaveData(scn.leave);
     setLeaveWeekKey(getWeekKey(0));
@@ -163,7 +183,6 @@ export function App() {
   async function restoreRealData() {
     const currentWeekKey = getWeekKey(0);
     const [snap, leave] = await Promise.all([getSnapshot(), getLeaveData(currentWeekKey)]);
-    setWeekOffset(0);
     setSnapshot(snap);
     setLeaveData(leave);
     setLeaveWeekKey(currentWeekKey);
@@ -248,20 +267,20 @@ export function App() {
     exitRemainingM,
   } = data;
 
-  const isCurrentWeek = weekOffset === 0;
+  const isCurrentWeek = true;
   const today = dayjs(now);
-  const monthStart = today.startOf('month');
 
   // ---- today ring ----
   const todayMin = todayH * 60 + todayM;
   const cappedTodayMin = Math.min(todayMin, DAILY_CAP_HOURS * 60);
   const todayDone = todayRemainingH === 0 && todayRemainingM === 0;
-  const hasTodayRing = isCurrentWeek && !!firstRecord && today.isSame(dayjs(firstRecord), 'day');
+  const isWorkday = today.day() >= 1 && today.day() <= 5;
+  const hasTodayRing = isCurrentWeek && isWorkday;
+  const hasStartedToday = !!firstRecord && today.isSame(dayjs(firstRecord), 'day');
 
   // ---- week ring ----
   const weekTotalWithTodayMin = weekTotalMin + cappedTodayMin;
   const wTotalH = weekTotalWithTodayMin / 60;
-  const [wh, wm] = calculateTime(weekTotalMin / 60);
   const [wth, wtm] = calculateTime(wTotalH);
   const [rwth, rwtm] = calculateRemaining(wTotalH, true, weekTargetH);
   const [pastRemH, pastRemM] = calculateRemaining(weekTotalMin / 60, true, weekTargetH);
@@ -269,36 +288,56 @@ export function App() {
   const weekPercent = weekTargetH > 0 ? (weekWorkedMin / 60 / weekTargetH) * 100 : 0;
   const [weekRemH, weekRemM] = isCurrentWeek ? [rwth, rwtm] : [pastRemH, pastRemM];
   const weekDone = weekRemH === 0 && weekRemM === 0;
-  const weekTimeText = isCurrentWeek ? `${wth}:${pad(wtm)}` : `${wh}:${pad(wm)}`;
+  const weekTimeText = `${wth}:${pad(wtm)}`;
   const weekTargetText = `${parseFloat(weekTargetH.toFixed(1))} ${t('hoursUnit')}`;
+  const dailyTotals = calcMode === 'span' ? snapshot.dailyTotalsSpan : snapshot.dailyTotalsSessions;
+  const dayColors = ['#6366f1', '#06b6d4', '#10b981', '#f59e0b', '#f43f5e'];
+  const weekDays = Array.from({ length: 5 }, (_, index) => {
+    const date = dayjs(getMondayOfWeek(0)).add(index, 'day');
+    const isToday = isCurrentWeek && date.isSame(today, 'day');
+    const rawMinutes = isToday ? cappedTodayMin : dailyTotals[date.format('YYYY-MM-DD')] || 0;
+    const minutes = !isToday && rawMinutes / 60 < 5
+      ? 0
+      : Math.min(rawMinutes, DAILY_CAP_HOURS * 60);
+    return {
+      label: t((['mondayShort', 'tuesdayShort', 'wednesdayShort', 'thursdayShort', 'fridayShort'] as const)[index]),
+      minutes,
+      value: weekTargetH > 0 ? minutes / (weekTargetH * 60) * 100 : 0,
+      color: dayColors[index],
+    };
+  });
+  const weekSegments = weekDays.filter((day) => day.value > 0);
 
-  // ---- alternative weekly targets (36/27/18) ----
-  // On partial weeks (target < 45h) show every alternative below the current
-  // target as a group, with "done ✓" for the ones already reached.
-  const todayCapacityMins = Math.max(0, DAILY_CAP_HOURS * 60 - todayMin);
-  const withExit = (h: number, m: number): string => {
-    const base = formatDuration(h, m);
-    if (h * 60 + m > todayCapacityMins) return base;
-    const exit = today.add(h, 'h').add(m, 'm');
-    if (!exit.isSame(today, 'day')) return base;
-    return `${base}  (${pad(exit.hour())}:${pad(exit.minute())})`;
-  };
-  const altTargets =
-    isCurrentWeek && weekTargetH < 45
-      ? [36, 27, 18]
-          .filter((x) => x < weekTargetH)
-          .map((x) => {
-            const [h, m] = calculateRemaining(wTotalH, true, x);
-            return { x, h, m, done: h === 0 && m === 0 };
-          })
-      : [];
+  const planningToday = today.day() === 5 && !hasStartedToday;
+  const showPlanner = planningToday || (today.day() >= 1 && today.day() <= 4);
+  const planningForFriday = planningToday || today.add(1, 'day').day() === 5;
+  const weeklyRemainingMinutes = weekRemH * 60 + weekRemM;
+  const plannerTargetMinutes = planningForFriday
+    ? weeklyRemainingMinutes
+    : Math.round(dailyTarget * 60);
+  const plannerCanFit = plannerTargetMinutes <= DAILY_CAP_HOURS * 60;
+  const boundedDesiredExit = clampDesiredExit(desiredExit, plannerTargetMinutes);
+  const [desiredHour, desiredMinute] = boundedDesiredExit.split(':').map(Number);
+  const requiredEntry = today
+    .hour(Number.isFinite(desiredHour) ? desiredHour : 15)
+    .minute(Number.isFinite(desiredMinute) ? desiredMinute : 0)
+    .subtract(plannerTargetMinutes, 'minute');
+
+  const monthlyTotalMin = Object.values(dailyTotals).reduce((sum, minutes) => sum + minutes, 0);
+  const [monthlyH, monthlyM] = calculateTime(monthlyTotalMin / 60);
 
   // ---- exit card ----
   let exitBig = '';
   let exitHint: string | null = null;
   let exitColor = 'var(--text)';
-  if (exitRemainingH !== 0 || exitRemainingM !== 0) {
-    const lt = today.add(exitRemainingH, 'h').add(exitRemainingM, 'm');
+  if (weekDone) {
+    exitBig = t('weekCompleted');
+    exitColor = 'var(--accent)';
+  } else if (exitRemainingH !== 0 || exitRemainingM !== 0) {
+    const exitBase = snapshot.todayHasOpenSession === false && snapshot.lastRecordISO
+      ? dayjs(snapshot.lastRecordISO)
+      : today;
+    const lt = exitBase.add(exitRemainingH, 'h').add(exitRemainingM, 'm');
     const exitClock = `${pad(lt.hour())}:${pad(lt.minute())}`;
     exitBig = lt.isSame(today, 'day') ? `~${exitClock}` : t('tomorrowAt', { t: exitClock });
     if (weeklyExitStr) exitHint = t('weekTargetHint', { wt: weeklyExitStr });
@@ -307,21 +346,16 @@ export function App() {
     exitColor = 'var(--accent)';
   }
   const exitTooltip = weeklyExitStr
-    ? t('exitTimeTipWithWeek', { wt: weeklyExitStr })
+    ? t('exitTimeTipWithWeek', { h: dailyTarget, wt: weeklyExitStr })
     : today.day() === 5
       ? t('exitTimeTipFriday')
-      : t('exitTimeTip');
+      : t('exitTimeTip', { h: dailyTarget });
 
   return (
     <div className={styles.app}>
       <WeekNav
-        weekOffset={weekOffset}
-        monthStart={monthStart}
-        disabled={refreshing}
         calcMode={calcMode}
         onCalcModeToggle={handleCalcModeToggle}
-        onPrev={() => { if (!refreshing) setWeekOffset((o) => o - 1); }}
-        onNext={() => { if (!refreshing) setWeekOffset((o) => o + 1); }}
       />
 
       {statusBar}
@@ -334,15 +368,15 @@ export function App() {
           <Ring
             label={t('today')}
             timeText={`${todayH}:${pad(todayM)}`}
-            targetText={`${DAILY_TARGET_HOURS} ${t('hoursUnit')}`}
-            percent={(todayMin / (DAILY_TARGET_HOURS * 60)) * 100}
+            targetText={`${dailyTarget} ${t('hoursUnit')}`}
+            percent={(todayMin / (dailyTarget * 60)) * 100}
             chipText={todayDone ? t('done') : t('remainingChip', { h: todayRemainingH, m: todayRemainingM })}
             chipTone={todayDone ? 'green' : 'amber'}
             showPercent={todayRingPercent}
             onToggle={() => setTodayRingPercent((v) => !v)}
             overflowText={
-              todayMin > DAILY_TARGET_HOURS * 60
-                ? formatCompactDuration(todayMin - DAILY_TARGET_HOURS * 60)
+              todayMin > dailyTarget * 60
+                ? formatCompactDuration(todayMin - dailyTarget * 60)
                 : undefined
             }
           />
@@ -354,22 +388,85 @@ export function App() {
           percent={weekPercent}
           chipText={weekDone ? t('done') : t('remainingChip', { h: weekRemH, m: weekRemM })}
           chipTone={weekDone ? 'green' : 'amber'}
-          showPercent={weekRingPercent}
-          onToggle={() => setWeekRingPercent((v) => !v)}
+          showPercent={false}
+          onToggle={() => setWeekBreakdown((v) => !v)}
           overflowText={
             weekWorkedMin > weekTargetH * 60
               ? formatCompactDuration(weekWorkedMin - weekTargetH * 60)
               : undefined
           }
+          segments={weekSegments}
+          dayBars={weekDays}
+          showBreakdown={weekBreakdown}
         />
       </div>
 
-      {hasTodayRing && (
+      {isCurrentWeek && showPlanner && (
+        <div className={styles.planner}>
+          <div className={styles.plannerTitle}>{t(planningToday ? 'todayPlanner' : 'tomorrowPlanner')}</div>
+          <label className={styles.plannerField}>
+            <span>{planningForFriday ? t('fridayRemainingTarget') : t('dailyTarget')}</span>
+            {planningForFriday ? (
+              <strong className={styles.plannerTarget}>{formatDuration(weekRemH, weekRemM)}</strong>
+            ) : (
+              <span><input type="number" min="1" max={DAILY_CAP_HOURS} step="0.5" value={dailyTarget} onChange={(e) => {
+                const value = Math.min(DAILY_CAP_HOURS, Math.max(1, Number(e.target.value) || DAILY_TARGET_HOURS));
+                setDailyTarget(value);
+                setDesiredExit((current) => {
+                  const next = clampDesiredExit(current, Math.round(value * 60));
+                  setDesiredExitDraft(next);
+                  return next;
+                });
+                saveDailyTarget(value);
+              }} /> {t('hoursUnit')}</span>
+            )}
+          </label>
+          <label className={styles.plannerField}>
+            <span>{t(planningToday ? 'todayPlannedExit' : 'tomorrowExit')}</span>
+            <input
+              className={styles.timeText}
+              type="text"
+              inputMode="numeric"
+              maxLength={5}
+              placeholder="15:00"
+              aria-label={t(planningToday ? 'todayPlannedExit' : 'tomorrowExit')}
+              value={desiredExitDraft}
+              disabled={!plannerCanFit}
+              onFocus={(e) => e.currentTarget.select()}
+              onChange={(e) => {
+                const value = e.target.value.replace(/[^0-9:]/g, '');
+                if (value.length <= 5) setDesiredExitDraft(value);
+              }}
+              onBlur={() => {
+                const valid = /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(desiredExitDraft);
+                const next = valid
+                  ? clampDesiredExit(desiredExitDraft, plannerTargetMinutes)
+                  : boundedDesiredExit;
+                setDesiredExit(next);
+                setDesiredExitDraft(next);
+              }}
+            />
+          </label>
+          <div className={styles.requiredEntry}>
+            {plannerCanFit
+              ? t(planningToday ? 'todayPlannedEntry' : 'tomorrowEntry', { t: `${pad(requiredEntry.hour())}:${pad(requiredEntry.minute())}` })
+              : t('cannotFinishFriday')}
+          </div>
+        </div>
+      )}
+
+      {hasStartedToday && (
         <div className={styles.exit} title={exitTooltip}>
           <div>
-            <div className={styles.exitLabel}>{t('exitTime')}</div>
+            <div className={styles.exitLabel}>{weekDone ? t('weekStatus') : t('todayStatus')}</div>
             {exitHint && <div className={styles.exitHint}>{exitHint}</div>}
-            <div className={styles.exitBasis}>{t('exitBasis')}</div>
+            <div className={styles.exitBasis}>
+              {weekDone || (todayRemainingH === 0 && todayRemainingM === 0)
+                ? t('todayTargetCompleted')
+                : snapshot.todayHasOpenSession === false
+                  ? t('closedExitBasis')
+                  : t('exitBasis')}
+            </div>
           </div>
           <div className={styles.exitTime} style={{ color: exitColor }}>{exitBig}</div>
         </div>
@@ -378,12 +475,8 @@ export function App() {
       <div className={styles.rows}>
         {isCurrentWeek ? (
           <>
-            {hasTodayRing && <Row k={t('todayPlusWeek')} v={formatDuration(wth, wtm)} />}
-            {weekTotalMin > 0 && <Row k={t('completedDays')} v={formatDuration(wh, wm)} />}
-            {todayMin > DAILY_TARGET_HOURS * 60 && (() => {
-              const [oh, om] = calculateTime(todayMin / 60 - DAILY_TARGET_HOURS);
-              return <Row k={t('todayOvertime')} v={`+${formatDuration(oh, om)}`} sub color="var(--muted)" />;
-            })()}
+            <Row k={t('weeklyTotal')} v={formatDuration(wth, wtm)} />
+            <Row k={t('monthlyTotal')} v={formatDuration(monthlyH, monthlyM)} />
             {todayMin > DAILY_CAP_HOURS * 60 && (
               <Row k={t('todayCapNote')} v="11h" sub color="var(--red)" />
             )}
@@ -396,20 +489,6 @@ export function App() {
           />
         )}
       </div>
-
-      {altTargets.length > 0 && (
-        <div className={styles.altCard}>
-          <div className={styles.altHead}>{t('altTargets')}</div>
-          {altTargets.map(({ x, h, m, done }) => (
-            <div key={x} className={styles.altRow}>
-              <span className={styles.altK}>{t('forHours', { h: x })}</span>
-              <span className={styles.altV} style={done ? { color: 'var(--accent)' } : undefined}>
-                {done ? t('altDone') : withExit(h, m)}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
 
       {shortDays.length > 0 && shortDays.map(({ date, mins }) => {
         const h = Math.floor(mins / 60);

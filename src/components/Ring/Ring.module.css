@@ -2,11 +2,11 @@
   background: var(--inset);
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 14px 12px 13px;
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 9px;
+  gap: 6px;
   font: inherit;
   color: inherit;
   cursor: pointer;
@@ -34,6 +34,100 @@
   position: relative;
   width: 120px;
   height: 120px;
+}
+
+.ringView {
+  position: absolute;
+  inset: 0;
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 0.22s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes circle-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.82) rotate(-4deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+}
+
+@keyframes ring-draw {
+  from {
+    stroke-dashoffset: 251.33;
+  }
+}
+
+.circleAnimated:not(.viewHidden) {
+  animation: circle-pop 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.circleAnimated:not(.viewHidden) .singleFill {
+  animation: ring-draw 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.viewHidden {
+  opacity: 0;
+  transform: scale(0.82);
+  pointer-events: none;
+}
+
+.breakdown {
+  position: absolute;
+  inset: 3px -10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 7px;
+  opacity: 0;
+  transform: translateY(7px);
+  transition: opacity 0.22s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+.breakdownVisible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.breakdown:not(.breakdownVisible) .dayFill {
+  transform: scaleX(0) !important;
+}
+
+.dayRow {
+  display: grid;
+  grid-template-columns: 24px minmax(42px, 1fr) 35px;
+  align-items: center;
+  gap: 5px;
+}
+
+.dayLabel,
+.dayTime {
+  color: var(--muted);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+}
+
+.dayLabel { text-align: left; }
+.dayTime { text-align: right; color: var(--text); font-weight: 600; }
+
+.dayTrack {
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--track);
+}
+
+.dayFill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  transform-origin: left center;
+  transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.08s;
 }
 
 .overflow {
@@ -117,5 +211,10 @@
 @media (prefers-reduced-motion: reduce) {
   .fill {
     transition: none;
+  }
+
+  .circleAnimated:not(.viewHidden),
+  .circleAnimated:not(.viewHidden) .singleFill {
+    animation: none;
   }
 }

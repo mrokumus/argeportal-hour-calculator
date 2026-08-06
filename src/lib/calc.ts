@@ -28,6 +28,7 @@ export function computeWeekData(
   calcMode: CalcMode,
   leaveDataIn: LeaveData,
   now: Dayjs = dayjs(),
+  dailyTargetH: number = DAILY_TARGET_HOURS,
 ): ComputeResult {
   const today = now;
   const isCurrentWeek = weekOffset === 0;
@@ -81,13 +82,16 @@ export function computeWeekData(
 
   let todayH = 0;
   let todayM = 0;
-  let todayRemainingH = weekTargetH;
+  let todayRemainingH = dailyTargetH;
   let todayRemainingM = 0;
 
   if (firstRecord) {
-    const diff = today.diff(firstRecord, 'hour', true);
-    [todayH, todayM] = calculateTime(diff);
-    [todayRemainingH, todayRemainingM] = calculateRemaining(diff, false, DAILY_TARGET_HOURS);
+    const recordedTodayMins = dailyTotals[today.format('YYYY-MM-DD')];
+    const workedHours = snapshot.todayHasOpenSession === false && recordedTodayMins != null
+      ? recordedTodayMins / 60
+      : today.diff(firstRecord, 'hour', true);
+    [todayH, todayM] = calculateTime(workedHours);
+    [todayRemainingH, todayRemainingM] = calculateRemaining(workedHours, false, dailyTargetH);
   }
 
   // Week totals (completed days only — excludes today for the current week)
@@ -132,7 +136,7 @@ export function computeWeekData(
     }
 
     // On Friday, the exit time is driven by the weekly target (not daily 9h)
-    if (today.day() === 5 && rwth < DAILY_TARGET_HOURS) {
+    if (today.day() === 5 && rwth < dailyTargetH) {
       exitRemainingH = rwth;
       exitRemainingM = rwtm;
       weeklyExitStr = null;

@@ -54,6 +54,8 @@ export function buildDevScenarios(now: Dayjs = dayjs()): DevScenario[] {
     capturedAt: now.toISOString(),
     capturedDay: now.format('YYYY-MM-DD'),
     firstRecordISO: firstRecordFor(workedTodayMin),
+    lastRecordISO: workedTodayMin == null ? null : now.toISOString(),
+    todayHasOpenSession: workedTodayMin != null,
     dailyTotalsSessions: totals,
     dailyTotalsSpan: totals,
   });
