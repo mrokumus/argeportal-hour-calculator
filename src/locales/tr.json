@@ -75,5 +75,12 @@
   "thursdayShort": "Per",
   "fridayShort": "Cum",
   "targetExitTime": "Hedef çıkış",
-  "closedExitBasis": "Son çıkış + kalan süre"
+  "closedExitBasis": "Son çıkış + kalan süre",
+  "settings": "⚙ Ayarlar",
+  "portalUrl": "ARGEPORTAL adresi",
+  "portalUrlHint": "Yenile, ARGEPORTAL açık değilse kayıtlı adresi açar; oturum açıksa verileri çekip hesaplar.",
+  "invalidPortalUrl": "Geçerli bir http veya https adresi girin.",
+  "save": "Kaydet",
+  "decreaseTime": "15 dakika azalt",
+  "increaseTime": "15 dakika artır"
 }

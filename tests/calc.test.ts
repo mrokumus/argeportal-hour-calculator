@@ -133,4 +133,33 @@ describe('computeWeekData', () => {
     expect([result.data.exitRemainingH, result.data.exitRemainingM]).toEqual([2, 0]);
     jest.useRealTimers();
   });
+
+  it('moves Friday check-in one minute later for each extra minute worked on Thursday', () => {
+    const snapshot: Snapshot = {
+      capturedAt: dayjs('2026-08-13T17:00:00').toISOString(),
+      capturedDay: '2026-08-13',
+      firstRecordISO: dayjs('2026-08-13T09:00:00').toISOString(),
+      todayHasOpenSession: true,
+      dailyTotalsSessions: {
+        '2026-08-10': 600,
+        '2026-08-11': 600,
+        '2026-08-12': 540,
+      },
+      dailyTotalsSpan: {},
+    };
+    const leave = { leave: 0, ooo: 0, autoDetected: false };
+
+    const atFive = computeWeekData(snapshot, 0, 'sessions', leave, dayjs('2026-08-13T17:00:00'));
+    const atFiveOhOne = computeWeekData(snapshot, 0, 'sessions', leave, dayjs('2026-08-13T17:01:00'));
+    const remaining = (result: typeof atFive) => {
+      const worked = result.data.weekTotalMin + result.data.todayH * 60 + result.data.todayM;
+      return result.data.weekTargetH * 60 - worked;
+    };
+    const fridayExit = 15 * 60;
+
+    expect(remaining(atFive)).toBe(8 * 60);
+    expect(fridayExit - remaining(atFive)).toBe(7 * 60);
+    expect(remaining(atFiveOhOne)).toBe(7 * 60 + 59);
+    expect(fridayExit - remaining(atFiveOhOne)).toBe(7 * 60 + 1);
+  });
 });

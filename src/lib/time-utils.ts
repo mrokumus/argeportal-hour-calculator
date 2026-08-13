@@ -74,6 +74,38 @@ export function formatOOO(minutes: number | null | undefined): string {
 }
 
 /**
+ * Build per-day worked totals from raw punch minutes. Punches are sorted and
+ * paired as check-in/check-out; an unmatched final check-in is intentionally
+ * ignored because that session is still open.
+ */
+export function calculateSessionTotalsFromPunches(
+  punchesByDay: Record<string, number[]>,
+): Record<string, number> {
+  const totals: Record<string, number> = {};
+  for (const [date, punches] of Object.entries(punchesByDay)) {
+    const sorted = [...punches].filter(Number.isFinite).sort((a, b) => a - b);
+    let total = 0;
+    for (let i = 0; i + 1 < sorted.length; i += 2) {
+      total += Math.max(0, sorted[i + 1] - sorted[i]);
+    }
+    if (total > 0) totals[date] = total;
+  }
+  return totals;
+}
+
+/** Prefer positive portal summaries, falling back to reconstructed raw totals. */
+export function mergeSessionTotals(
+  summary: Record<string, number>,
+  rawFallback: Record<string, number>,
+): Record<string, number> {
+  const merged = { ...rawFallback };
+  for (const [date, minutes] of Object.entries(summary)) {
+    if (minutes > 0 || merged[date] == null) merged[date] = minutes;
+  }
+  return merged;
+}
+
+/**
  * Count Mon–Fri days in [weekStart, weekEnd] that are on or after monthStart.
  * Used to compute the weekly hour target for partial first weeks of a month.
  */

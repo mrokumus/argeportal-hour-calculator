@@ -4,12 +4,12 @@ import type { CalcMode, LeaveData, Snapshot } from '../../types';
 import { computeWeekData } from '../../lib/calc';
 import {
   getCalcMode,
-  getDailyTarget,
   getLeaveData,
+  getPortalUrl,
   getSnapshot,
   saveCalcMode,
-  saveDailyTarget,
   saveLeaveData,
+  savePortalUrl,
   saveSnapshot,
 } from '../../lib/storage';
 import { requestParse } from '../../lib/refresh';
@@ -28,6 +28,7 @@ const DEFAULT_LEAVE: LeaveData = { leave: 0, ooo: 0, autoDetected: true };
 const pad = (n: number) => String(n).padStart(2, '0');
 const EARLIEST_ENTRY_MINUTES = 4 * 60;
 const LATEST_EXIT_MINUTES = 23 * 60 + 59;
+const EXIT_STEP_MINUTES = 15;
 
 function timeToMinutes(value: string): number {
   const [hours, minutes] = value.split(':').map(Number);
@@ -74,7 +75,7 @@ export function App() {
   const [booted, setBooted] = useState(false);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [calcMode, setCalcMode] = useState<CalcMode>('sessions');
-  const [dailyTarget, setDailyTarget] = useState(DAILY_TARGET_HOURS);
+  const [plannerDailyTarget, setPlannerDailyTarget] = useState(DAILY_TARGET_HOURS);
   const [desiredExit, setDesiredExit] = useState('15:00');
   const [desiredExitDraft, setDesiredExitDraft] = useState('15:00');
   const [leaveData, setLeaveData] = useState<LeaveData | null>(null);
@@ -87,10 +88,14 @@ export function App() {
   const [devIndex, setDevIndex] = useState(0);
   const [devLabel, setDevLabel] = useState('');
   const [devActive, setDevActive] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [portalUrl, setPortalUrl] = useState('');
+  const [portalUrlDraft, setPortalUrlDraft] = useState('');
+  const [portalUrlError, setPortalUrlError] = useState(false);
 
   const weekKey = getWeekKey(0);
 
-  async function refresh() {
+  async function refresh(openPortalOnFailure = false) {
     setRefreshing(true);
     try {
       const res = await requestParse();
@@ -105,9 +110,13 @@ export function App() {
         setPortalStatus('ok');
       } else {
         setPortalStatus('not-found');
+        if (openPortalOnFailure && portalUrl) await browser.tabs.create({ url: portalUrl });
+        if (openPortalOnFailure && !portalUrl) setSettingsOpen(true);
       }
     } catch {
       setPortalStatus('not-found');
+      if (openPortalOnFailure && portalUrl) await browser.tabs.create({ url: portalUrl });
+      if (openPortalOnFailure && !portalUrl) setSettingsOpen(true);
     } finally {
       setRefreshing(false);
     }
@@ -115,10 +124,13 @@ export function App() {
 
   useEffect(() => {
     (async () => {
-      const [mode, snap, target] = await Promise.all([getCalcMode(), getSnapshot(), getDailyTarget()]);
+      const [mode, snap, storedPortalUrl] = await Promise.all([
+        getCalcMode(), getSnapshot(), getPortalUrl(),
+      ]);
       setCalcMode(mode);
       setSnapshot(snap);
-      setDailyTarget(target);
+      setPortalUrl(storedPortalUrl);
+      setPortalUrlDraft(storedPortalUrl);
       setBooted(true);
       await refresh();
     })();
@@ -145,8 +157,8 @@ export function App() {
 
   const result = useMemo(() => {
     if (!snapshot || !leaveData || leaveWeekKey !== weekKey) return null;
-    return computeWeekData(snapshot, 0, calcMode, leaveData, dayjs(now), dailyTarget);
-  }, [snapshot, leaveData, leaveWeekKey, weekKey, calcMode, now, dailyTarget]);
+    return computeWeekData(snapshot, 0, calcMode, leaveData, dayjs(now));
+  }, [snapshot, leaveData, leaveWeekKey, weekKey, calcMode, now]);
 
   useEffect(() => {
     if (result?.leaveDataChanged && !devActive) {
@@ -159,6 +171,41 @@ export function App() {
     const next: CalcMode = calcMode === 'sessions' ? 'span' : 'sessions';
     saveCalcMode(next);
     setCalcMode(next);
+  }
+
+  function normalizePortalUrl(value: string): string | null {
+    try {
+      const parsed = new URL(value.trim());
+      if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return null;
+      return parsed.toString();
+    } catch {
+      return null;
+    }
+  }
+
+  async function handleSavePortalUrl() {
+    const normalized = normalizePortalUrl(portalUrlDraft);
+    if (!normalized) {
+      setPortalUrlError(true);
+      return;
+    }
+    await savePortalUrl(normalized);
+    setPortalUrl(normalized);
+    setPortalUrlDraft(normalized);
+    setPortalUrlError(false);
+    setSettingsOpen(false);
+  }
+
+  function commitDesiredExit(value: string, targetMinutes: number) {
+    const next = clampDesiredExit(value, targetMinutes);
+    setDesiredExit(next);
+    setDesiredExitDraft(next);
+  }
+
+  function stepDesiredExit(deltaMinutes: number, targetMinutes: number) {
+    const current = timeToMinutes(clampDesiredExit(desiredExit, targetMinutes));
+    const next = Math.min(LATEST_EXIT_MINUTES, Math.max(0, current + deltaMinutes));
+    commitDesiredExit(minutesToTime(next), targetMinutes);
   }
 
   function handleLeaveChange(updated: LeaveData) {
@@ -232,17 +279,47 @@ export function App() {
         <span className={`${styles.dot} ${stale ? styles.dotStale : cachedAfterFailedRefresh ? styles.dotWarning : ''}`} />
         {updatedText}
       </span>
-      <button className={styles.refresh} type="button" onClick={refresh} disabled={refreshing}>
-        {refreshing && <span className={styles.refreshSpinner} />}
-        {refreshing ? t('refreshing') : t('refresh')}
-      </button>
+      <div className={styles.statusActions}>
+        <button
+          className={styles.settingsButton}
+          type="button"
+          aria-expanded={settingsOpen}
+          onClick={() => setSettingsOpen((open) => !open)}
+        >
+          {t('settings')}
+        </button>
+        <button className={styles.refresh} type="button" onClick={() => refresh(true)} disabled={refreshing}>
+          {refreshing && <span className={styles.refreshSpinner} />}
+          {refreshing ? t('refreshing') : t('refresh')}
+        </button>
+      </div>
     </div>
   );
+
+  const settingsPanel = settingsOpen ? (
+    <div className={styles.settingsPanel}>
+      <label className={styles.settingsLabel} htmlFor="portal-url">{t('portalUrl')}</label>
+      <div className={styles.settingsRow}>
+        <input
+          id="portal-url"
+          type="url"
+          placeholder="https://argeportal.example.com/"
+          value={portalUrlDraft}
+          onChange={(event) => { setPortalUrlDraft(event.target.value); setPortalUrlError(false); }}
+          onKeyDown={(event) => { if (event.key === 'Enter') handleSavePortalUrl(); }}
+        />
+        <button type="button" onClick={handleSavePortalUrl}>{t('save')}</button>
+      </div>
+      {portalUrlError && <div className={styles.settingsError}>{t('invalidPortalUrl')}</div>}
+      <div className={styles.settingsHint}>{t('portalUrlHint')}</div>
+    </div>
+  ) : null;
 
   if (!snapshot || !result) {
     return (
       <div className={styles.app}>
         {statusBar}
+        {settingsPanel}
         <div className={styles.empty}>
           <span>{portalStatus === 'not-found' ? t('notFoundEmpty') : t('loading')}</span>
         </div>
@@ -314,7 +391,7 @@ export function App() {
   const weeklyRemainingMinutes = weekRemH * 60 + weekRemM;
   const plannerTargetMinutes = planningForFriday
     ? weeklyRemainingMinutes
-    : Math.round(dailyTarget * 60);
+    : Math.round(plannerDailyTarget * 60);
   const plannerCanFit = plannerTargetMinutes <= DAILY_CAP_HOURS * 60;
   const boundedDesiredExit = clampDesiredExit(desiredExit, plannerTargetMinutes);
   const [desiredHour, desiredMinute] = boundedDesiredExit.split(':').map(Number);
@@ -346,10 +423,10 @@ export function App() {
     exitColor = 'var(--accent)';
   }
   const exitTooltip = weeklyExitStr
-    ? t('exitTimeTipWithWeek', { h: dailyTarget, wt: weeklyExitStr })
+    ? t('exitTimeTipWithWeek', { h: DAILY_TARGET_HOURS, wt: weeklyExitStr })
     : today.day() === 5
       ? t('exitTimeTipFriday')
-      : t('exitTimeTip', { h: dailyTarget });
+      : t('exitTimeTip', { h: DAILY_TARGET_HOURS });
 
   return (
     <div className={styles.app}>
@@ -359,6 +436,7 @@ export function App() {
       />
 
       {statusBar}
+      {settingsPanel}
 
       {stale && <Warning text={t('staleWarning')} />}
       {portalStatus === 'not-found' && !stale && <Warning text={t('notFoundCached')} />}
@@ -368,15 +446,15 @@ export function App() {
           <Ring
             label={t('today')}
             timeText={`${todayH}:${pad(todayM)}`}
-            targetText={`${dailyTarget} ${t('hoursUnit')}`}
-            percent={(todayMin / (dailyTarget * 60)) * 100}
+            targetText={`${DAILY_TARGET_HOURS} ${t('hoursUnit')}`}
+            percent={(todayMin / (DAILY_TARGET_HOURS * 60)) * 100}
             chipText={todayDone ? t('done') : t('remainingChip', { h: todayRemainingH, m: todayRemainingM })}
             chipTone={todayDone ? 'green' : 'amber'}
             showPercent={todayRingPercent}
             onToggle={() => setTodayRingPercent((v) => !v)}
             overflowText={
-              todayMin > dailyTarget * 60
-                ? formatCompactDuration(todayMin - dailyTarget * 60)
+              todayMin > DAILY_TARGET_HOURS * 60
+                ? formatCompactDuration(todayMin - DAILY_TARGET_HOURS * 60)
                 : undefined
             }
           />
@@ -409,43 +487,65 @@ export function App() {
             {planningForFriday ? (
               <strong className={styles.plannerTarget}>{formatDuration(weekRemH, weekRemM)}</strong>
             ) : (
-              <span><input type="number" min="1" max={DAILY_CAP_HOURS} step="0.5" value={dailyTarget} onChange={(e) => {
+              <span><input type="number" min="1" max={DAILY_CAP_HOURS} step="0.5" value={plannerDailyTarget} onChange={(e) => {
                 const value = Math.min(DAILY_CAP_HOURS, Math.max(1, Number(e.target.value) || DAILY_TARGET_HOURS));
-                setDailyTarget(value);
+                setPlannerDailyTarget(value);
                 setDesiredExit((current) => {
                   const next = clampDesiredExit(current, Math.round(value * 60));
                   setDesiredExitDraft(next);
                   return next;
                 });
-                saveDailyTarget(value);
               }} /> {t('hoursUnit')}</span>
             )}
           </label>
           <label className={styles.plannerField}>
             <span>{t(planningToday ? 'todayPlannedExit' : 'tomorrowExit')}</span>
-            <input
-              className={styles.timeText}
-              type="text"
-              inputMode="numeric"
-              maxLength={5}
-              placeholder="15:00"
-              aria-label={t(planningToday ? 'todayPlannedExit' : 'tomorrowExit')}
-              value={desiredExitDraft}
-              disabled={!plannerCanFit}
-              onFocus={(e) => e.currentTarget.select()}
-              onChange={(e) => {
-                const value = e.target.value.replace(/[^0-9:]/g, '');
-                if (value.length <= 5) setDesiredExitDraft(value);
-              }}
-              onBlur={() => {
-                const valid = /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(desiredExitDraft);
-                const next = valid
-                  ? clampDesiredExit(desiredExitDraft, plannerTargetMinutes)
-                  : boundedDesiredExit;
-                setDesiredExit(next);
-                setDesiredExitDraft(next);
-              }}
-            />
+            <span className={styles.timeStepper}>
+              <button
+                type="button"
+                className={styles.timeStepButton}
+                aria-label={t('decreaseTime')}
+                title={t('decreaseTime')}
+                disabled={!plannerCanFit}
+                onClick={() => stepDesiredExit(-EXIT_STEP_MINUTES, plannerTargetMinutes)}
+              >−</button>
+              <input
+                className={styles.timeText}
+                type="text"
+                inputMode="numeric"
+                maxLength={5}
+                placeholder="15:00"
+                aria-label={t(planningToday ? 'todayPlannedExit' : 'tomorrowExit')}
+                value={desiredExitDraft}
+                disabled={!plannerCanFit}
+                onFocus={(e) => e.currentTarget.select()}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^0-9:]/g, '');
+                  if (value.length <= 5) setDesiredExitDraft(value);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    stepDesiredExit(EXIT_STEP_MINUTES, plannerTargetMinutes);
+                  } else if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    stepDesiredExit(-EXIT_STEP_MINUTES, plannerTargetMinutes);
+                  }
+                }}
+                onBlur={() => {
+                  const valid = /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(desiredExitDraft);
+                  commitDesiredExit(valid ? desiredExitDraft : boundedDesiredExit, plannerTargetMinutes);
+                }}
+              />
+              <button
+                type="button"
+                className={styles.timeStepButton}
+                aria-label={t('increaseTime')}
+                title={t('increaseTime')}
+                disabled={!plannerCanFit}
+                onClick={() => stepDesiredExit(EXIT_STEP_MINUTES, plannerTargetMinutes)}
+              >+</button>
+            </span>
           </label>
           <div className={styles.requiredEntry}>
             {plannerCanFit

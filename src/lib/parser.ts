@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
 import type { ParseResult, Snapshot } from '../types';
-import { timeNormalize } from './time-utils';
+import { calculateSessionTotalsFromPunches, mergeSessionTotals, timeNormalize } from './time-utils';
 import { waitForElement } from './dom-watcher';
 import { t } from './i18n';
 import {
@@ -92,6 +92,24 @@ function scrapeSessions(rows: NodeListOf<Element>): Record<string, number> {
     }
   });
   return map;
+}
+
+/** Completed session totals reconstructed from the raw punch table. */
+function scrapeSessionsFromPunches(rows: NodeListOf<Element>): Record<string, number> {
+  const punchesByDay: Record<string, number[]> = {};
+  rows.forEach((row) => {
+    try {
+      const raw = (row.querySelector('td:nth-child(6)') as HTMLElement).innerText;
+      const [date, time] = timeNormalize(raw);
+      if (!date || !time) return;
+      const [hours, minutes] = time.split(':').map(Number);
+      if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return;
+      (punchesByDay[date] ??= []).push(hours * 60 + minutes);
+    } catch {
+      // skip malformed rows
+    }
+  });
+  return calculateSessionTotalsFromPunches(punchesByDay);
 }
 
 /**
@@ -196,6 +214,8 @@ export async function parseSnapshot(): Promise<ParseResult> {
     const monthStart = now.startOf('month');
     const monthEnd = now.endOf('month');
     const punchRows = tableOne.querySelectorAll('tbody > tr');
+    const summarySessions = scrapeSessions(tableTwo.querySelectorAll('tbody > tr'));
+    const rawSessions = scrapeSessionsFromPunches(punchRows);
 
     const snapshot: Snapshot = {
       capturedAt: now.toISOString(),
@@ -203,7 +223,7 @@ export async function parseSnapshot(): Promise<ParseResult> {
       firstRecordISO: scrapeFirstRecord(punchRows, now),
       lastRecordISO: scrapeLastRecord(punchRows, now),
       todayHasOpenSession: hasOpenSession(punchRows, now),
-      dailyTotalsSessions: scrapeSessions(tableTwo.querySelectorAll('tbody > tr')),
+      dailyTotalsSessions: mergeSessionTotals(summarySessions, rawSessions),
       dailyTotalsSpan: scrapeSpan(punchRows, monthStart, monthEnd),
     };
 

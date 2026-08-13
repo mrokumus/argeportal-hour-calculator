@@ -75,5 +75,12 @@
   "thursdayShort": "Thu",
   "fridayShort": "Fri",
   "targetExitTime": "Target exit",
-  "closedExitBasis": "Last check-out + remaining time"
+  "closedExitBasis": "Last check-out + remaining time",
+  "settings": "⚙ Settings",
+  "portalUrl": "ARGEPORTAL address",
+  "portalUrlHint": "Refresh opens the saved ARGEPORTAL address when needed; if you are signed in, it fetches and calculates your data.",
+  "invalidPortalUrl": "Enter a valid http or https address.",
+  "save": "Save",
+  "decreaseTime": "Decrease by 15 minutes",
+  "increaseTime": "Increase by 15 minutes"
 }

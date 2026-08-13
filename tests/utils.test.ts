@@ -1,4 +1,6 @@
 import {
+  calculateSessionTotalsFromPunches,
+  mergeSessionTotals,
   calculateTime,
   calculateRemaining,
   calculateRemainingX,
@@ -10,6 +12,35 @@ import {
 } from '../src/lib/time-utils';
 
 const d = (str: string) => new Date(str);
+
+describe('raw punch session fallback', () => {
+  test('sorts punches and sums multiple sessions in one day', () => {
+    expect(calculateSessionTotalsFromPunches({
+      '2026-08-13': [17 * 60, 13 * 60, 12 * 60, 8 * 60],
+    })).toEqual({ '2026-08-13': 8 * 60 });
+  });
+
+  test('ignores an unmatched open check-in', () => {
+    expect(calculateSessionTotalsFromPunches({
+      '2026-08-13': [8 * 60, 12 * 60, 13 * 60],
+    })).toEqual({ '2026-08-13': 4 * 60 });
+  });
+
+  test('returns no total for a day with only one punch', () => {
+    expect(calculateSessionTotalsFromPunches({ '2026-08-13': [8 * 60] })).toEqual({});
+  });
+
+  test('uses raw totals when summary is missing or zero', () => {
+    expect(mergeSessionTotals(
+      { '2026-08-12': 0, '2026-08-11': 530 },
+      { '2026-08-12': 540, '2026-08-11': 525, '2026-08-10': 510 },
+    )).toEqual({
+      '2026-08-12': 540,
+      '2026-08-11': 530,
+      '2026-08-10': 510,
+    });
+  });
+});
 
 // ── calculateTime ──────────────────────────────────────────────
 describe('calculateTime', () => {

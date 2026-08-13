@@ -48,3 +48,6 @@ export const STORAGE_KEY_SNAPSHOT = `${STORAGE_PREFIX}snapshot`;
 
 /** Storage key for the user-configurable daily target. */
 export const STORAGE_KEY_DAILY_TARGET = `${STORAGE_PREFIX}daily_target`;
+
+/** Storage key for the user-configured ARGEPORTAL address. */
+export const STORAGE_KEY_PORTAL_URL = `${STORAGE_PREFIX}portal_url`;

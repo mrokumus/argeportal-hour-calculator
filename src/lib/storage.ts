@@ -5,6 +5,7 @@ import {
   STORAGE_KEY_CALC_MODE,
   STORAGE_KEY_DAILY_TARGET,
   STORAGE_KEY_SNAPSHOT,
+  STORAGE_KEY_PORTAL_URL,
   STORAGE_PREFIX,
 } from '../config';
 
@@ -57,4 +58,13 @@ export async function getSnapshot(): Promise<Snapshot | null> {
 
 export async function saveSnapshot(snapshot: Snapshot): Promise<void> {
   await browser.storage.local.set({ [STORAGE_KEY_SNAPSHOT]: snapshot });
+}
+
+export async function getPortalUrl(): Promise<string> {
+  const stored = (await browser.storage.local.get(STORAGE_KEY_PORTAL_URL))[STORAGE_KEY_PORTAL_URL];
+  return typeof stored === 'string' ? stored : '';
+}
+
+export async function savePortalUrl(url: string): Promise<void> {
+  await browser.storage.local.set({ [STORAGE_KEY_PORTAL_URL]: url });
 }
