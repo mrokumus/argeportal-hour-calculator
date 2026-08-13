@@ -3,6 +3,15 @@ name: Release
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      store:
+        description: Store to publish
+        required: true
+        type: choice
+        options:
+          - firefox
+          - chrome
 
 permissions:
   contents: write
@@ -18,7 +27,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name }}
+          ref: ${{ github.event.release.tag_name || github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -30,6 +39,7 @@ jobs:
       - run: npm run typecheck
 
       - name: Verify release tag matches package version
+        if: github.event_name == 'release'
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
@@ -55,6 +65,7 @@ jobs:
           echo "firefox_sources=$FIREFOX_SOURCES" >> "$GITHUB_OUTPUT"
 
       - name: Attach packages to GitHub Release
+        if: github.event_name == 'release'
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
@@ -64,6 +75,7 @@ jobs:
         run: gh release upload "$RELEASE_TAG" "$CHROME_ZIP" "$FIREFOX_ZIP" "$FIREFOX_SOURCES" --clobber
 
       - name: Get Chrome Web Store access token
+        if: github.event_name == 'release' || inputs.store == 'chrome'
         id: chrome-auth
         env:
           CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
@@ -82,6 +94,7 @@ jobs:
           echo "::add-mask::$ACCESS_TOKEN"
 
       - name: Upload to Chrome Web Store
+        if: github.event_name == 'release' || inputs.store == 'chrome'
         env:
           ACCESS_TOKEN: ${{ steps.chrome-auth.outputs.access_token }}
           PUBLISHER_ID: ${{ secrets.CHROME_PUBLISHER_ID }}
@@ -96,6 +109,7 @@ jobs:
             "https://chromewebstore.googleapis.com/upload/v2/publishers/$PUBLISHER_ID/items/$EXTENSION_ID:upload"
 
       - name: Submit Chrome version for review and publishing
+        if: github.event_name == 'release' || inputs.store == 'chrome'
         env:
           ACCESS_TOKEN: ${{ steps.chrome-auth.outputs.access_token }}
           PUBLISHER_ID: ${{ secrets.CHROME_PUBLISHER_ID }}
@@ -108,6 +122,7 @@ jobs:
             "https://chromewebstore.googleapis.com/v2/publishers/$PUBLISHER_ID/items/$EXTENSION_ID:publish"
 
       - name: Submit Firefox version for listed review
+        if: github.event_name == 'release' || inputs.store == 'firefox'
         env:
           AMO_JWT_ISSUER: ${{ secrets.AMO_KEY }}
           AMO_JWT_SECRET: ${{ secrets.AMO_SECRET }}
