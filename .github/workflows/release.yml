@@ -109,8 +109,8 @@ jobs:
 
       - name: Submit Firefox version for listed review
         env:
-          AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
-          AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+          AMO_JWT_ISSUER: ${{ secrets.AMO_KEY }}
+          AMO_JWT_SECRET: ${{ secrets.AMO_SECRET }}
           FIREFOX_SOURCES: ${{ steps.packages.outputs.firefox_sources }}
         run: |
           npx web-ext sign \
