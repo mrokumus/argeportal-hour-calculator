@@ -63,25 +63,25 @@ export function buildDevScenarios(now: Dayjs = dayjs()): DevScenario[] {
   return [
     {
       // Mid-day: today in progress, a short day earlier this week, exit time visible.
-      name: 'Gün ortası',
+      name: 'Midday',
       snapshot: snap(372, fill(545, 220)), // today 6:12, ~9h days + one 3:40 short day
       leave: { ...DEFAULT_LEAVE },
     },
     {
       // Overtime: today already past 9h → "you can leave", overtime row.
-      name: 'Fazla mesai / çıkabilir',
+      name: 'Overtime / can leave',
       snapshot: snap(585, fill(560)), // today 9:45
       leave: { ...DEFAULT_LEAVE },
     },
     {
       // Partial week with reduced target → the 36h alt-target row appears.
-      name: 'Kısmi hafta (alt hedefler)',
+      name: 'Partial week (lower targets)',
       snapshot: snap(240, fill(500)), // today 4:00
       leave: { leave: 1, ooo: 90, autoDetected: false }, // target ≈ 37.5h
     },
     {
       // Stale: snapshot captured yesterday, no check-in today.
-      name: 'Veri güncel değil',
+      name: 'Stale data',
       snapshot: {
         ...snap(null, fill(540)),
         capturedAt: now.subtract(1, 'day').hour(18).minute(30).toISOString(),

@@ -241,9 +241,9 @@ export function App() {
   const devBar = import.meta.env.DEV ? (
     <div className={styles.devBar}>
       <button className={styles.devBtn} type="button" onClick={loadNextSample}>
-        🧪 Örnek veri
+        🧪 Sample data
       </button>
-      <span className={styles.devLabel}>{devLabel || 'senaryoları gez'}</span>
+      <span className={styles.devLabel}>{devLabel || 'browse scenarios'}</span>
       {devActive && (
         <button className={styles.devBtn} type="button" onClick={restoreRealData}>
           {t('restoreRealData')}
