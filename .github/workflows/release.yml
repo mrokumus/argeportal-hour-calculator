@@ -1,0 +1,123 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: store-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: extension-stores
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npm test -- --runInBand
+      - run: npm run typecheck
+
+      - name: Verify release tag matches package version
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+          test "$RELEASE_TAG" = "v$PACKAGE_VERSION"
+
+      - name: Build store packages
+        run: |
+          npm run zip
+          npm run zip:firefox
+
+      - name: Resolve package paths
+        id: packages
+        run: |
+          CHROME_ZIP="$(find .output -maxdepth 1 -name '*-chrome.zip' -print -quit)"
+          FIREFOX_ZIP="$(find .output -maxdepth 1 -name '*-firefox.zip' -print -quit)"
+          FIREFOX_SOURCES="$(find .output -maxdepth 1 -name '*-sources.zip' -print -quit)"
+          test -n "$CHROME_ZIP"
+          test -n "$FIREFOX_ZIP"
+          test -n "$FIREFOX_SOURCES"
+          echo "chrome=$CHROME_ZIP" >> "$GITHUB_OUTPUT"
+          echo "firefox=$FIREFOX_ZIP" >> "$GITHUB_OUTPUT"
+          echo "firefox_sources=$FIREFOX_SOURCES" >> "$GITHUB_OUTPUT"
+
+      - name: Attach packages to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          CHROME_ZIP: ${{ steps.packages.outputs.chrome }}
+          FIREFOX_ZIP: ${{ steps.packages.outputs.firefox }}
+          FIREFOX_SOURCES: ${{ steps.packages.outputs.firefox_sources }}
+        run: gh release upload "$RELEASE_TAG" "$CHROME_ZIP" "$FIREFOX_ZIP" "$FIREFOX_SOURCES" --clobber
+
+      - name: Get Chrome Web Store access token
+        id: chrome-auth
+        env:
+          CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CHROME_CLIENT_SECRET }}
+          REFRESH_TOKEN: ${{ secrets.CHROME_REFRESH_TOKEN }}
+        run: |
+          RESPONSE="$(curl --fail-with-body --silent --show-error \
+            https://oauth2.googleapis.com/token \
+            --data-urlencode "client_id=$CLIENT_ID" \
+            --data-urlencode "client_secret=$CLIENT_SECRET" \
+            --data-urlencode "refresh_token=$REFRESH_TOKEN" \
+            --data-urlencode "grant_type=refresh_token")"
+          ACCESS_TOKEN="$(jq -r '.access_token // empty' <<< "$RESPONSE")"
+          test -n "$ACCESS_TOKEN"
+          echo "access_token=$ACCESS_TOKEN" >> "$GITHUB_OUTPUT"
+          echo "::add-mask::$ACCESS_TOKEN"
+
+      - name: Upload to Chrome Web Store
+        env:
+          ACCESS_TOKEN: ${{ steps.chrome-auth.outputs.access_token }}
+          PUBLISHER_ID: ${{ secrets.CHROME_PUBLISHER_ID }}
+          EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
+          CHROME_ZIP: ${{ steps.packages.outputs.chrome }}
+        run: |
+          curl --fail-with-body --silent --show-error \
+            -H "Authorization: Bearer $ACCESS_TOKEN" \
+            -H "Content-Type: application/zip" \
+            -X POST \
+            -T "$CHROME_ZIP" \
+            "https://chromewebstore.googleapis.com/upload/v2/publishers/$PUBLISHER_ID/items/$EXTENSION_ID:upload"
+
+      - name: Submit Chrome version for review and publishing
+        env:
+          ACCESS_TOKEN: ${{ steps.chrome-auth.outputs.access_token }}
+          PUBLISHER_ID: ${{ secrets.CHROME_PUBLISHER_ID }}
+          EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
+        run: |
+          curl --fail-with-body --silent --show-error \
+            -H "Authorization: Bearer $ACCESS_TOKEN" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            "https://chromewebstore.googleapis.com/v2/publishers/$PUBLISHER_ID/items/$EXTENSION_ID:publish"
+
+      - name: Submit Firefox version for listed review
+        env:
+          AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
+          AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+          FIREFOX_SOURCES: ${{ steps.packages.outputs.firefox_sources }}
+        run: |
+          npx web-ext sign \
+            --source-dir .output/firefox-mv2 \
+            --artifacts-dir web-ext-artifacts \
+            --channel listed \
+            --approval-timeout 0 \
+            --upload-source-code "$FIREFOX_SOURCES" \
+            --api-key "$AMO_JWT_ISSUER" \
+            --api-secret "$AMO_JWT_SECRET"
