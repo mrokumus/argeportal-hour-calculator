@@ -183,61 +183,86 @@
 
 .planner {
   margin: 8px 16px 2px;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--inset);
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--border) 88%, transparent);
+  border-radius: 14px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--inset) 96%, var(--surface)), var(--inset));
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
 }
 
 .plannerTitle {
   grid-column: 1 / -1;
-  color: var(--faint);
-  font-size: 10px;
-  font-weight: 650;
-  letter-spacing: 0.08em;
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
+  padding: 1px 2px 2px;
 }
 
 .plannerField {
   min-width: 0;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
   gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--surface) 54%, transparent);
   color: var(--muted);
   font-size: 11.5px;
 }
 
+.plannerField > span:first-child {
+  font-weight: 550;
+}
+
+.plannerField > span:last-child {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .planner input {
-  width: 62px;
+  width: 100%;
+  min-width: 0;
   box-sizing: border-box;
   border: 1px solid var(--border);
-  border-radius: 7px;
-  padding: 4px 5px;
+  border-radius: 8px;
+  padding: 7px 9px;
   color: var(--text);
   background: var(--surface);
   font: inherit;
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
 
+.planner input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
 .planner .timeText {
-  width: 58px;
+  width: 72px;
   border: 0;
   border-radius: 0;
-  padding-inline: 2px;
+  padding-inline: 4px;
   text-align: center;
   letter-spacing: 0.04em;
 }
 
 .timeStepper {
-  display: inline-flex;
+  display: flex;
+  width: 100%;
   align-items: stretch;
   overflow: hidden;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 9px;
   background: var(--surface);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
@@ -248,12 +273,13 @@
 }
 
 .planner .timeStepButton {
-  width: 28px;
+  width: 31px;
+  flex: 0 0 31px;
   border: 0;
   background: transparent;
   color: var(--muted);
   font: inherit;
-  font-size: 16px;
+  font-size: 17px;
   line-height: 1;
   cursor: pointer;
 }
@@ -264,6 +290,13 @@
 .planner .timeStepButton:disabled { opacity: 0.4; cursor: default; }
 
 .plannerTarget {
+  display: flex;
+  align-items: center;
+  min-height: 33px;
+  padding: 0 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
   color: var(--text);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
@@ -272,12 +305,21 @@
 
 .requiredEntry {
   grid-column: 1 / -1;
-  align-self: center;
-  text-align: right;
-  color: var(--text);
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 8px 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border));
+  border-radius: 10px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 12%, transparent), color-mix(in srgb, var(--accent) 20%, transparent));
+  color: var(--accent);
+  box-shadow: inset 0 0 24px color-mix(in srgb, var(--accent) 7%, transparent), 0 0 0 1px color-mix(in srgb, var(--accent) 5%, transparent);
+  text-align: center;
+  font-weight: 750;
   font-variant-numeric: tabular-nums;
-  font-size: 12px;
+  font-size: 14px;
+  letter-spacing: 0.01em;
 }
 
 /* exit card */
