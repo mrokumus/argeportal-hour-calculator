@@ -399,6 +399,7 @@ export function App() {
     .hour(Number.isFinite(desiredHour) ? desiredHour : 15)
     .minute(Number.isFinite(desiredMinute) ? desiredMinute : 0)
     .subtract(plannerTargetMinutes, 'minute');
+  const requiredEntryTime = `${pad(requiredEntry.hour())}:${pad(requiredEntry.minute())}`;
 
   const monthlyTotalMin = Object.values(dailyTotals).reduce((sum, minutes) => sum + minutes, 0);
   const [monthlyH, monthlyM] = calculateTime(monthlyTotalMin / 60);
@@ -548,9 +549,14 @@ export function App() {
             </span>
           </label>
           <div className={styles.requiredEntry}>
-            {plannerCanFit
-              ? t(planningToday ? 'todayPlannedEntry' : 'tomorrowEntry', { t: `${pad(requiredEntry.hour())}:${pad(requiredEntry.minute())}` })
-              : t('cannotFinishFriday')}
+            {plannerCanFit ? (
+              <>
+                <span>
+                  {t(planningToday ? 'todayPlannedEntry' : 'tomorrowEntry', { t: '' }).trim()}
+                </span>
+                <strong className={styles.requiredEntryTime}>{requiredEntryTime}</strong>
+              </>
+            ) : t('cannotFinishFriday')}
           </div>
         </div>
       )}
