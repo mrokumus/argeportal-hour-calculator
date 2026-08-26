@@ -510,7 +510,7 @@ export function App() {
                 <input
                   className={styles.timeText}
                   type="text"
-                  value={`${plannerDailyTarget} ${t('hoursUnit')}`}
+                  value={minutesToTime(Math.round(plannerDailyTarget * 60))}
                   aria-label={t('dailyTarget')}
                   readOnly
                 />
