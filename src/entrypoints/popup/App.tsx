@@ -490,6 +490,23 @@ export function App() {
         />
       </div>
 
+      {hasStartedToday && (
+        <div className={styles.exit} title={exitTooltip}>
+          <div>
+            <div className={styles.exitLabel}>{weekDone ? t('weekStatus') : t('todayStatus')}</div>
+            {exitHint && <div className={styles.exitHint}>{exitHint}</div>}
+            <div className={styles.exitBasis}>
+              {weekDone || (todayRemainingH === 0 && todayRemainingM === 0)
+                ? t('todayTargetCompleted')
+                : snapshot.todayHasOpenSession === false
+                  ? t('closedExitBasis')
+                  : t('exitBasis')}
+            </div>
+          </div>
+          <div className={styles.exitTime} style={{ color: exitColor }}>{exitBig}</div>
+        </div>
+      )}
+
       {isCurrentWeek && showPlanner && (
         <div className={styles.planner}>
           <div className={styles.plannerTitle}>{t(planningToday ? 'todayPlanner' : 'tomorrowPlanner')}</div>
@@ -584,23 +601,6 @@ export function App() {
               </>
             ) : t('cannotFinishFriday')}
           </div>
-        </div>
-      )}
-
-      {hasStartedToday && (
-        <div className={styles.exit} title={exitTooltip}>
-          <div>
-            <div className={styles.exitLabel}>{weekDone ? t('weekStatus') : t('todayStatus')}</div>
-            {exitHint && <div className={styles.exitHint}>{exitHint}</div>}
-            <div className={styles.exitBasis}>
-              {weekDone || (todayRemainingH === 0 && todayRemainingM === 0)
-                ? t('todayTargetCompleted')
-                : snapshot.todayHasOpenSession === false
-                  ? t('closedExitBasis')
-                  : t('exitBasis')}
-            </div>
-          </div>
-          <div className={styles.exitTime} style={{ color: exitColor }}>{exitBig}</div>
         </div>
       )}
 
