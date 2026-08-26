@@ -32,8 +32,8 @@ export function computeWeekData(
 ): ComputeResult {
   const today = now;
   const isCurrentWeek = weekOffset === 0;
-  const weekStart = dayjs(getMondayOfWeek(weekOffset));
-  const weekEnd = dayjs(getSundayOfWeek(weekOffset));
+  const weekStart = dayjs(getMondayOfWeek(weekOffset, today.toDate()));
+  const weekEnd = dayjs(getSundayOfWeek(weekOffset, today.toDate()));
   const monthStart = today.startOf('month');
   const monthEnd = today.endOf('month');
 
