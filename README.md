@@ -111,7 +111,7 @@ The version is defined in `package.json`. A GitHub Release tag must match it exa
 
 ```text
 package.json: 1.6.0
-release tag:  v1.6.0
+release tag:  v1.6.1
 ```
 
 Publishing a GitHub Release runs `.github/workflows/release.yml`, attaches Chrome/Firefox artifacts to the release, and submits both existing store listings for review. The workflow can also retry only Chrome or only Firefox through `workflow_dispatch`.
