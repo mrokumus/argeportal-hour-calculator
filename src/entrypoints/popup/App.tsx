@@ -208,6 +208,16 @@ export function App() {
     commitDesiredExit(minutesToTime(next), targetMinutes);
   }
 
+  function updatePlannerDailyTarget(value: number) {
+    const next = Math.min(DAILY_CAP_HOURS, Math.max(1, value));
+    setPlannerDailyTarget(next);
+    setDesiredExit((current) => {
+      const clampedExit = clampDesiredExit(current, Math.round(next * 60));
+      setDesiredExitDraft(clampedExit);
+      return clampedExit;
+    });
+  }
+
   function handleLeaveChange(updated: LeaveData) {
     if (!devActive) saveLeaveData(weekKey, updated);
     setLeaveData(updated);
@@ -399,6 +409,7 @@ export function App() {
     .hour(Number.isFinite(desiredHour) ? desiredHour : 15)
     .minute(Number.isFinite(desiredMinute) ? desiredMinute : 0)
     .subtract(plannerTargetMinutes, 'minute');
+  const requiredEntryTime = `${pad(requiredEntry.hour())}:${pad(requiredEntry.minute())}`;
 
   const monthlyTotalMin = Object.values(dailyTotals).reduce((sum, minutes) => sum + minutes, 0);
   const [monthlyH, monthlyM] = calculateTime(monthlyTotalMin / 60);
@@ -479,6 +490,23 @@ export function App() {
         />
       </div>
 
+      {hasStartedToday && (
+        <div className={styles.exit} title={exitTooltip}>
+          <div>
+            <div className={styles.exitLabel}>{weekDone ? t('weekStatus') : t('todayStatus')}</div>
+            {exitHint && <div className={styles.exitHint}>{exitHint}</div>}
+            <div className={styles.exitBasis}>
+              {weekDone || (todayRemainingH === 0 && todayRemainingM === 0)
+                ? t('todayTargetCompleted')
+                : snapshot.todayHasOpenSession === false
+                  ? t('closedExitBasis')
+                  : t('exitBasis')}
+            </div>
+          </div>
+          <div className={styles.exitTime} style={{ color: exitColor }}>{exitBig}</div>
+        </div>
+      )}
+
       {isCurrentWeek && showPlanner && (
         <div className={styles.planner}>
           <div className={styles.plannerTitle}>{t(planningToday ? 'todayPlanner' : 'tomorrowPlanner')}</div>
@@ -487,15 +515,31 @@ export function App() {
             {planningForFriday ? (
               <strong className={styles.plannerTarget}>{formatDuration(weekRemH, weekRemM)}</strong>
             ) : (
-              <span><input type="number" min="1" max={DAILY_CAP_HOURS} step="0.5" value={plannerDailyTarget} onChange={(e) => {
-                const value = Math.min(DAILY_CAP_HOURS, Math.max(1, Number(e.target.value) || DAILY_TARGET_HOURS));
-                setPlannerDailyTarget(value);
-                setDesiredExit((current) => {
-                  const next = clampDesiredExit(current, Math.round(value * 60));
-                  setDesiredExitDraft(next);
-                  return next;
-                });
-              }} /> {t('hoursUnit')}</span>
+              <span className={styles.timeStepper}>
+                <button
+                  type="button"
+                  className={styles.timeStepButton}
+                  aria-label={t('decreaseDailyTarget')}
+                  title={t('decreaseDailyTarget')}
+                  disabled={plannerDailyTarget <= 1}
+                  onClick={() => updatePlannerDailyTarget(plannerDailyTarget - 0.25)}
+                >−</button>
+                <input
+                  className={styles.timeText}
+                  type="text"
+                  value={minutesToTime(Math.round(plannerDailyTarget * 60))}
+                  aria-label={t('dailyTarget')}
+                  readOnly
+                />
+                <button
+                  type="button"
+                  className={styles.timeStepButton}
+                  aria-label={t('increaseDailyTarget')}
+                  title={t('increaseDailyTarget')}
+                  disabled={plannerDailyTarget >= DAILY_CAP_HOURS}
+                  onClick={() => updatePlannerDailyTarget(plannerDailyTarget + 0.25)}
+                >+</button>
+              </span>
             )}
           </label>
           <label className={styles.plannerField}>
@@ -548,27 +592,15 @@ export function App() {
             </span>
           </label>
           <div className={styles.requiredEntry}>
-            {plannerCanFit
-              ? t(planningToday ? 'todayPlannedEntry' : 'tomorrowEntry', { t: `${pad(requiredEntry.hour())}:${pad(requiredEntry.minute())}` })
-              : t('cannotFinishFriday')}
+            {plannerCanFit ? (
+              <>
+                <span>
+                  {t(planningToday ? 'todayPlannedEntry' : 'tomorrowEntry', { t: '' }).trim()}
+                </span>
+                <strong className={styles.requiredEntryTime}>{requiredEntryTime}</strong>
+              </>
+            ) : t('cannotFinishFriday')}
           </div>
-        </div>
-      )}
-
-      {hasStartedToday && (
-        <div className={styles.exit} title={exitTooltip}>
-          <div>
-            <div className={styles.exitLabel}>{weekDone ? t('weekStatus') : t('todayStatus')}</div>
-            {exitHint && <div className={styles.exitHint}>{exitHint}</div>}
-            <div className={styles.exitBasis}>
-              {weekDone || (todayRemainingH === 0 && todayRemainingM === 0)
-                ? t('todayTargetCompleted')
-                : snapshot.todayHasOpenSession === false
-                  ? t('closedExitBasis')
-                  : t('exitBasis')}
-            </div>
-          </div>
-          <div className={styles.exitTime} style={{ color: exitColor }}>{exitBig}</div>
         </div>
       )}
 

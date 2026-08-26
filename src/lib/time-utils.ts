@@ -1,15 +1,15 @@
 import { DAILY_CAP_HOURS } from '../config';
 
-export function getMondayOfWeek(offset: number): Date {
-  const d = new Date();
+export function getMondayOfWeek(offset: number, baseDate: Date = new Date()): Date {
+  const d = new Date(baseDate);
   const day = d.getDay();
   d.setDate(d.getDate() - (day === 0 ? 6 : day - 1) + offset * 7);
   d.setHours(0, 0, 0, 0);
   return d;
 }
 
-export function getSundayOfWeek(offset: number): Date {
-  const mon = getMondayOfWeek(offset);
+export function getSundayOfWeek(offset: number, baseDate: Date = new Date()): Date {
+  const mon = getMondayOfWeek(offset, baseDate);
   const sun = new Date(mon);
   sun.setDate(mon.getDate() + 6);
   sun.setHours(23, 59, 59, 999);
