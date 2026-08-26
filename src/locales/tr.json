@@ -83,6 +83,6 @@
   "save": "Kaydet",
   "decreaseTime": "15 dakika azalt",
   "increaseTime": "15 dakika artır",
-  "decreaseDailyTarget": "Günlük hedefi 30 dakika azalt",
-  "increaseDailyTarget": "Günlük hedefi 30 dakika artır"
+  "decreaseDailyTarget": "Günlük hedefi 15 dakika azalt",
+  "increaseDailyTarget": "Günlük hedefi 15 dakika artır"
 }

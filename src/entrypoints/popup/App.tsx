@@ -505,7 +505,7 @@ export function App() {
                   aria-label={t('decreaseDailyTarget')}
                   title={t('decreaseDailyTarget')}
                   disabled={plannerDailyTarget <= 1}
-                  onClick={() => updatePlannerDailyTarget(plannerDailyTarget - 0.5)}
+                  onClick={() => updatePlannerDailyTarget(plannerDailyTarget - 0.25)}
                 >−</button>
                 <input
                   className={styles.timeText}
@@ -520,7 +520,7 @@ export function App() {
                   aria-label={t('increaseDailyTarget')}
                   title={t('increaseDailyTarget')}
                   disabled={plannerDailyTarget >= DAILY_CAP_HOURS}
-                  onClick={() => updatePlannerDailyTarget(plannerDailyTarget + 0.5)}
+                  onClick={() => updatePlannerDailyTarget(plannerDailyTarget + 0.25)}
                 >+</button>
               </span>
             )}

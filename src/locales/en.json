@@ -83,6 +83,6 @@
   "save": "Save",
   "decreaseTime": "Decrease by 15 minutes",
   "increaseTime": "Increase by 15 minutes",
-  "decreaseDailyTarget": "Decrease daily target by 30 minutes",
-  "increaseDailyTarget": "Increase daily target by 30 minutes"
+  "decreaseDailyTarget": "Decrease daily target by 15 minutes",
+  "increaseDailyTarget": "Increase daily target by 15 minutes"
 }
