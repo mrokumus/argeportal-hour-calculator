@@ -1,6 +1,12 @@
 import dayjs from 'dayjs';
 import type { ParseResult, Snapshot } from '../types';
 import { calculateSessionTotalsFromPunches, mergeSessionTotals, timeNormalize } from './time-utils';
+import {
+  findEarliestPunch,
+  findLatestPunch,
+  parseDurationMinutes,
+  parsePortalDateTime,
+} from './parser-utils';
 import { waitForElement } from './dom-watcher';
 import { t } from './i18n';
 import {
@@ -80,12 +86,20 @@ function scrapeSessions(rows: NodeListOf<Element>): Record<string, number> {
   const map: Record<string, number> = {};
   rows.forEach((row) => {
     try {
-      const [dateStr] = timeNormalize(
-        (row.querySelector('td:nth-child(3)') as HTMLElement).innerText,
-      );
-      const raw = (row.querySelector('td:nth-child(6)') as HTMLElement).innerText;
-      const [wh, wm] = raw.split(':');
-      const mins = (parseInt(wh) || 0) * 60 + (parseInt(wm) || 0);
+      const dateRaw = (row.querySelector('td:nth-child(3)') as HTMLElement | null)?.innerText;
+      const durationRaw = (row.querySelector('td:nth-child(6)') as HTMLElement | null)?.innerText;
+      if (!dateRaw || !durationRaw) return;
+
+      const [dateStr] = timeNormalize(dateRaw);
+      const date = dayjs(dateStr);
+      const mins = parseDurationMinutes(durationRaw);
+      if (
+        !dateStr ||
+        !date.isValid() ||
+        date.format('YYYY-MM-DD') !== dateStr ||
+        mins == null
+      ) return;
+
       map[dateStr] = (map[dateStr] || 0) + mins;
     } catch {
       // skip malformed rows
@@ -99,12 +113,14 @@ function scrapeSessionsFromPunches(rows: NodeListOf<Element>): Record<string, nu
   const punchesByDay: Record<string, number[]> = {};
   rows.forEach((row) => {
     try {
-      const raw = (row.querySelector('td:nth-child(6)') as HTMLElement).innerText;
-      const [date, time] = timeNormalize(raw);
-      if (!date || !time) return;
-      const [hours, minutes] = time.split(':').map(Number);
-      if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return;
-      (punchesByDay[date] ??= []).push(hours * 60 + minutes);
+      const raw = (row.querySelector('td:nth-child(6)') as HTMLElement | null)?.innerText;
+      if (!raw) return;
+      const punch = parsePortalDateTime(raw);
+      if (!punch) return;
+
+      const date = punch.format('YYYY-MM-DD');
+      const mins = punch.hour() * 60 + punch.minute();
+      (punchesByDay[date] ??= []).push(mins);
     } catch {
       // skip malformed rows
     }
@@ -125,13 +141,14 @@ function scrapeSpan(
   const dayData: Record<string, { first: number; last: number }> = {};
   rows.forEach((row) => {
     try {
-      const raw = (row.querySelector('td:nth-child(6)') as HTMLElement).innerText;
-      const [dateStr, timeStr] = timeNormalize(raw);
-      if (!timeStr) return;
-      const rowDay = dayjs(dateStr);
-      if (rowDay.isBefore(monthStart, 'day') || rowDay.isAfter(monthEnd, 'day')) return;
-      const [h, m] = timeStr.split(':').map(Number);
-      const mins = h * 60 + m;
+      const raw = (row.querySelector('td:nth-child(6)') as HTMLElement | null)?.innerText;
+      if (!raw) return;
+      const punch = parsePortalDateTime(raw);
+      if (!punch) return;
+      if (punch.isBefore(monthStart, 'day') || punch.isAfter(monthEnd, 'day')) return;
+
+      const dateStr = punch.format('YYYY-MM-DD');
+      const mins = punch.hour() * 60 + punch.minute();
       if (!dayData[dateStr]) {
         dayData[dateStr] = { first: mins, last: mins };
       } else {
@@ -149,33 +166,25 @@ function scrapeSpan(
   return result;
 }
 
-/** First check-in of today from the raw punch table, second-adjusted, as ISO. */
-function scrapeFirstRecord(rows: NodeListOf<Element>, today: dayjs.Dayjs): string | null {
-  let firstRecord: dayjs.Dayjs | null = null;
+function collectPunchStrings(rows: NodeListOf<Element>): string[] {
+  const punches: string[] = [];
   rows.forEach((row) => {
-    const rowTime = (row.querySelector('td:nth-child(6)') as HTMLElement | null)?.innerText;
-    if (!rowTime) return;
-    const [currentDate, currentTime] = timeNormalize(rowTime);
-    const time = dayjs(`${currentDate} ${currentTime}`);
-    if (today.isSame(time, 'day') && !firstRecord) {
-      firstRecord = time.add(time.get('second') > 1 ? 60 - time.get('second') : 1, 'second');
-    }
+    const raw = (row.querySelector('td:nth-child(6)') as HTMLElement | null)?.innerText;
+    if (raw) punches.push(raw);
   });
-  return firstRecord ? (firstRecord as dayjs.Dayjs).toISOString() : null;
+  return punches;
+}
+
+/** First check-in of today, independent of portal row ordering. */
+function scrapeFirstRecord(rows: NodeListOf<Element>, today: dayjs.Dayjs): string | null {
+  const first = findEarliestPunch(collectPunchStrings(rows), today);
+  if (!first) return null;
+  const adjusted = first.add(first.second() > 1 ? 60 - first.second() : 1, 'second');
+  return adjusted.toISOString();
 }
 
 function scrapeLastRecord(rows: NodeListOf<Element>, today: dayjs.Dayjs): string | null {
-  let lastRecord: dayjs.Dayjs | null = null;
-  rows.forEach((row) => {
-    const raw = (row.querySelector('td:nth-child(6)') as HTMLElement | null)?.innerText;
-    if (!raw) return;
-    const [date, time] = timeNormalize(raw);
-    const punch = dayjs(`${date} ${time}`);
-    if (today.isSame(punch, 'day') && (!lastRecord || punch.isAfter(lastRecord))) {
-      lastRecord = punch;
-    }
-  });
-  return lastRecord ? (lastRecord as dayjs.Dayjs).toISOString() : null;
+  return findLatestPunch(collectPunchStrings(rows), today)?.toISOString() ?? null;
 }
 
 /** Punches alternate check-in/check-out; an odd count means work is still active. */
@@ -184,8 +193,8 @@ function hasOpenSession(rows: NodeListOf<Element>, today: dayjs.Dayjs): boolean 
   rows.forEach((row) => {
     const raw = (row.querySelector('td:nth-child(6)') as HTMLElement | null)?.innerText;
     if (!raw) return;
-    const [date] = timeNormalize(raw);
-    if (date === today.format('YYYY-MM-DD')) todayPunches++;
+    const punch = parsePortalDateTime(raw);
+    if (punch && today.isSame(punch, 'day')) todayPunches++;
   });
   return todayPunches % 2 === 1;
 }
