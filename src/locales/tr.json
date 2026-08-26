@@ -82,5 +82,7 @@
   "invalidPortalUrl": "Geçerli bir http veya https adresi girin.",
   "save": "Kaydet",
   "decreaseTime": "15 dakika azalt",
-  "increaseTime": "15 dakika artır"
+  "increaseTime": "15 dakika artır",
+  "decreaseDailyTarget": "Günlük hedefi 30 dakika azalt",
+  "increaseDailyTarget": "Günlük hedefi 30 dakika artır"
 }

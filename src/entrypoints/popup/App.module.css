@@ -267,6 +267,8 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
+.plannerField > .timeStepper { gap: 0; }
+
 .timeStepper:focus-within {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);

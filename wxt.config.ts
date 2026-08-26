@@ -3,7 +3,7 @@ import { version } from './package.json';
 
 export default defineConfig({
   srcDir: 'src',
-  outDir: '.output',
+  outDir: 'output',
   modules: ['@wxt-dev/module-react'],
   manifest: ({ browser }) => ({
     name: 'PDKS Time Calculator',

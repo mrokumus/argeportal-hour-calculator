@@ -208,6 +208,16 @@ export function App() {
     commitDesiredExit(minutesToTime(next), targetMinutes);
   }
 
+  function updatePlannerDailyTarget(value: number) {
+    const next = Math.min(DAILY_CAP_HOURS, Math.max(1, value));
+    setPlannerDailyTarget(next);
+    setDesiredExit((current) => {
+      const clampedExit = clampDesiredExit(current, Math.round(next * 60));
+      setDesiredExitDraft(clampedExit);
+      return clampedExit;
+    });
+  }
+
   function handleLeaveChange(updated: LeaveData) {
     if (!devActive) saveLeaveData(weekKey, updated);
     setLeaveData(updated);
@@ -488,15 +498,31 @@ export function App() {
             {planningForFriday ? (
               <strong className={styles.plannerTarget}>{formatDuration(weekRemH, weekRemM)}</strong>
             ) : (
-              <span><input type="number" min="1" max={DAILY_CAP_HOURS} step="0.5" value={plannerDailyTarget} onChange={(e) => {
-                const value = Math.min(DAILY_CAP_HOURS, Math.max(1, Number(e.target.value) || DAILY_TARGET_HOURS));
-                setPlannerDailyTarget(value);
-                setDesiredExit((current) => {
-                  const next = clampDesiredExit(current, Math.round(value * 60));
-                  setDesiredExitDraft(next);
-                  return next;
-                });
-              }} /> {t('hoursUnit')}</span>
+              <span className={styles.timeStepper}>
+                <button
+                  type="button"
+                  className={styles.timeStepButton}
+                  aria-label={t('decreaseDailyTarget')}
+                  title={t('decreaseDailyTarget')}
+                  disabled={plannerDailyTarget <= 1}
+                  onClick={() => updatePlannerDailyTarget(plannerDailyTarget - 0.5)}
+                >−</button>
+                <input
+                  className={styles.timeText}
+                  type="text"
+                  value={`${plannerDailyTarget} ${t('hoursUnit')}`}
+                  aria-label={t('dailyTarget')}
+                  readOnly
+                />
+                <button
+                  type="button"
+                  className={styles.timeStepButton}
+                  aria-label={t('increaseDailyTarget')}
+                  title={t('increaseDailyTarget')}
+                  disabled={plannerDailyTarget >= DAILY_CAP_HOURS}
+                  onClick={() => updatePlannerDailyTarget(plannerDailyTarget + 0.5)}
+                >+</button>
+              </span>
             )}
           </label>
           <label className={styles.plannerField}>
