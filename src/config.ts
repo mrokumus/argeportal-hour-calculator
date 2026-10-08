@@ -23,7 +23,7 @@ export const DAILY_TARGET_HOURS = 9;
 export const DAILY_CAP_HOURS = 11;
 
 /** Minimum hours to count a day as worked (below this → treated as leave) */
-export const SHORT_DAY_THRESHOLD_HOURS = 5;
+export const SHORT_DAY_THRESHOLD_HOURS = 6;
 
 /** Auto-refresh interval in milliseconds */
 export const REFRESH_INTERVAL_MS = 60_000;
@@ -51,3 +51,18 @@ export const STORAGE_KEY_DAILY_TARGET = `${STORAGE_PREFIX}daily_target`;
 
 /** Storage key for the user-configured ARGEPORTAL address. */
 export const STORAGE_KEY_PORTAL_URL = `${STORAGE_PREFIX}portal_url`;
+
+/** Storage key for calculation and planner preferences. */
+export const STORAGE_KEY_SETTINGS = `${STORAGE_PREFIX}settings`;
+
+export const DEFAULT_SETTINGS = {
+  dailyTargetMinutes: DAILY_TARGET_HOURS * 60,
+  dailyCapMinutes: DAILY_CAP_HOURS * 60,
+  shortDayThresholdMinutes: SHORT_DAY_THRESHOLD_HOURS * 60,
+  earliestEntry: '06:00',
+  latestExit: '23:59',
+  earliestExit: '15:00',
+  workdays: [1, 2, 3, 4, 5],
+  autoDetectLeave: true,
+  locale: 'auto',
+} as const;

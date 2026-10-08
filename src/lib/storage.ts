@@ -1,4 +1,4 @@
-import type { CalcMode, LeaveData, Snapshot } from '../types';
+import type { AppSettings, CalcMode, LeaveData, Snapshot } from '../types';
 import {
   DAILY_CAP_HOURS,
   DAILY_TARGET_HOURS,
@@ -6,7 +6,9 @@ import {
   STORAGE_KEY_DAILY_TARGET,
   STORAGE_KEY_SNAPSHOT,
   STORAGE_KEY_PORTAL_URL,
+  STORAGE_KEY_SETTINGS,
   STORAGE_PREFIX,
+  DEFAULT_SETTINGS,
 } from '../config';
 
 const DEFAULT: LeaveData = { leave: 0, ooo: 0, autoDetected: true };
@@ -67,4 +69,32 @@ export async function getPortalUrl(): Promise<string> {
 
 export async function savePortalUrl(url: string): Promise<void> {
   await browser.storage.local.set({ [STORAGE_KEY_PORTAL_URL]: url });
+}
+
+export async function getSettings(): Promise<AppSettings> {
+  const stored = (await browser.storage.local.get(STORAGE_KEY_SETTINGS))[STORAGE_KEY_SETTINGS];
+  const legacyTarget = await getDailyTarget();
+  const candidate = stored && typeof stored === 'object'
+    ? stored as Partial<AppSettings> & { defaultExit?: string }
+    : {};
+  const locale = candidate.locale === 'tr' || candidate.locale === 'en' || candidate.locale === 'auto'
+    ? candidate.locale
+    : DEFAULT_SETTINGS.locale;
+  return {
+    ...DEFAULT_SETTINGS,
+    ...candidate,
+    dailyTargetMinutes: candidate.dailyTargetMinutes ?? Math.round(legacyTarget * 60),
+    earliestExit: candidate.earliestExit ?? candidate.defaultExit ?? DEFAULT_SETTINGS.earliestExit,
+    locale,
+    workdays: Array.isArray(candidate.workdays) && candidate.workdays.length
+      ? candidate.workdays.filter((day) => Number.isInteger(day) && day >= 0 && day <= 6)
+      : [...DEFAULT_SETTINGS.workdays],
+  };
+}
+
+export async function saveSettings(settings: AppSettings): Promise<void> {
+  await browser.storage.local.set({
+    [STORAGE_KEY_SETTINGS]: settings,
+    [STORAGE_KEY_DAILY_TARGET]: settings.dailyTargetMinutes / 60,
+  });
 }

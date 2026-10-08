@@ -12,21 +12,22 @@ interface Props {
   showPercent: boolean;
   onToggle: () => void;
   overflowText?: string;
+  limitText?: string;
   segments?: Array<{ value: number; color: string }>;
   dayBars?: Array<{ label: string; minutes: number; color: string }>;
+  dayBarMaxMinutes?: number;
   showBreakdown?: boolean;
+  compact?: boolean;
 }
 
 const R = 40;
 const CIRC = 2 * Math.PI * R; // 251.33
 
-function bandColor(p: number): string {
-  if (p >= 100) return 'var(--accent)';
-  if (p >= 70) return 'var(--blue)';
-  return 'var(--amber)';
+function bandColor(_p: number): string {
+  return 'var(--accent)';
 }
 
-export function Ring({ label, timeText, targetText, percent, chipText, chipTone, showPercent, onToggle, overflowText, segments, dayBars, showBreakdown = false }: Props) {
+export function Ring({ label, timeText, targetText, percent, chipText, chipTone, showPercent, onToggle, overflowText, limitText, segments, dayBars, dayBarMaxMinutes = 11 * 60, showBreakdown = false, compact = false }: Props) {
   const p = Math.max(0, Math.min(100, percent));
   const offset = CIRC * (1 - p / 100);
   const center = showPercent ? `%${Math.round(percent)}` : timeText;
@@ -35,7 +36,7 @@ export function Ring({ label, timeText, targetText, percent, chipText, chipTone,
   return (
     <button
       type="button"
-      className={styles.gauge}
+      className={`${styles.gauge} ${compact ? styles.compact : ''}`}
       onClick={onToggle}
       aria-pressed={showPercent || showBreakdown}
       aria-label={`${label}: ${timeText} / ${targetText} — ${chipText}`}
@@ -96,7 +97,7 @@ export function Ring({ label, timeText, targetText, percent, chipText, chipTone,
                     className={styles.dayFill}
                     style={{
                       backgroundColor: day.color,
-                      transform: `scaleX(${Math.min(day.minutes / (11 * 60), 1)})`,
+                      transform: `scaleX(${Math.min(day.minutes / dayBarMaxMinutes, 1)})`,
                     }}
                   />
                 </span>
@@ -107,6 +108,7 @@ export function Ring({ label, timeText, targetText, percent, chipText, chipTone,
         )}
       </span>
       <span className={`${styles.chip} ${chipTone === 'green' ? styles.green : styles.amber}`}>{chipText}</span>
+      {limitText && <span className={styles.limit}>{limitText}</span>}
     </button>
   );
 }
