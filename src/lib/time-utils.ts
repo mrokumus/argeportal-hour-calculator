@@ -53,8 +53,8 @@ export function timeNormalize(value: string): [string, string] {
   ];
 }
 
-export function capDailyHours(h: number, m: number): [number, number] {
-  if (h > DAILY_CAP_HOURS || (h === DAILY_CAP_HOURS && m > 0)) return [DAILY_CAP_HOURS, 0];
+export function capDailyHours(h: number, m: number, capHours = DAILY_CAP_HOURS): [number, number] {
+  if (h * 60 + m > capHours * 60) return calculateTime(capHours);
   return [h, m];
 }
 

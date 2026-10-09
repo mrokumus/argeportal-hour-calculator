@@ -1,5 +1,5 @@
 import dayjs, { type Dayjs } from 'dayjs';
-import type { CalcMode, LeaveData, Snapshot, WeekData } from '../types';
+import type { AppSettings, CalcMode, LeaveData, Snapshot, WeekData } from '../types';
 import {
   getMondayOfWeek,
   getSundayOfWeek,
@@ -29,6 +29,7 @@ export function computeWeekData(
   leaveDataIn: LeaveData,
   now: Dayjs = dayjs(),
   dailyTargetH: number = DAILY_TARGET_HOURS,
+  settings?: AppSettings,
 ): ComputeResult {
   const today = now;
   const isCurrentWeek = weekOffset === 0;
@@ -43,21 +44,25 @@ export function computeWeekData(
   const dailyTotals =
     calcMode === 'span' ? snapshot.dailyTotalsSpan : snapshot.dailyTotalsSessions;
 
-  const validWorkdays = countValidWorkdays(
-    weekStart.toDate(),
-    weekEnd.toDate(),
-    monthStart.toDate(),
-    monthEnd.toDate(),
-  );
+  let validWorkdays = 0;
+  for (let c = weekStart; !c.isAfter(weekEnd, 'day'); c = c.add(1, 'day')) {
+    const configuredWorkday = settings ? settings.workdays.includes(c.day()) : c.day() >= 1 && c.day() <= 5;
+    if (configuredWorkday && !c.isBefore(monthStart, 'day') && !c.isAfter(monthEnd, 'day')) validWorkdays++;
+  }
+  const targetHours = settings ? settings.dailyTargetMinutes / 60 : DAILY_TARGET_HOURS;
+  const capHours = settings ? settings.dailyCapMinutes / 60 : DAILY_CAP_HOURS;
+  const shortDayThresholdHours = settings
+    ? settings.shortDayThresholdMinutes / 60
+    : SHORT_DAY_THRESHOLD_HOURS;
 
   // Auto-detect leave days (weekdays before today with < threshold hours)
-  if (leaveData.autoDetected !== false) {
+  if ((settings?.autoDetectLeave ?? true) && leaveData.autoDetected !== false) {
     let autoLeave = 0;
     for (let c = weekStart; !c.isAfter(weekEnd, 'day'); c = c.add(1, 'day')) {
       if (c.isBefore(monthStart, 'day')) continue;
-      if (c.day() >= 1 && c.day() <= 5 && c.isBefore(today, 'day')) {
+      if ((settings?.workdays ?? [1, 2, 3, 4, 5]).includes(c.day()) && c.isBefore(today, 'day')) {
         const totalMins = dailyTotals[c.format('YYYY-MM-DD')] || 0;
-        if (totalMins / 60 < SHORT_DAY_THRESHOLD_HOURS) autoLeave++;
+        if (totalMins / 60 < shortDayThresholdHours) autoLeave++;
       }
     }
     if (autoLeave !== leaveData.leave) {
@@ -67,8 +72,8 @@ export function computeWeekData(
   }
 
   const weekTargetH =
-    validWorkdays * DAILY_TARGET_HOURS -
-    leaveData.leave * DAILY_TARGET_HOURS +
+    validWorkdays * targetHours -
+    leaveData.leave * targetHours +
     leaveData.ooo / 60;
 
   // Today — only meaningful on the current week and when the snapshot's first
@@ -105,13 +110,13 @@ export function computeWeekData(
     if (rowDay.isBefore(monthStart, 'day')) return;
     if (isCurrentWeek && today.isSame(rowDay, 'day')) return;
 
-    if (totalMins / 60 < SHORT_DAY_THRESHOLD_HOURS) {
+    if (totalMins / 60 < shortDayThresholdHours) {
       if (totalMins > 0) shortDays.push({ date: dateStr, mins: totalMins });
       return;
     }
 
     let [wh, wm] = [Math.floor(totalMins / 60), totalMins % 60];
-    [wh, wm] = capDailyHours(wh, wm);
+    [wh, wm] = capDailyHours(wh, wm, capHours);
     weekTotalMin += wh * 60 + wm;
   });
 
@@ -120,12 +125,12 @@ export function computeWeekData(
   let exitRemainingM = todayRemainingM;
 
   if (isCurrentWeek && firstRecord) {
-    const cappedTodayMin = Math.min(todayH * 60 + todayM, DAILY_CAP_HOURS * 60);
+    const cappedTodayMin = Math.min(todayH * 60 + todayM, settings?.dailyCapMinutes ?? DAILY_CAP_HOURS * 60);
     const weekTotalWithTodayMin = weekTotalMin + cappedTodayMin;
     const wTotalH = weekTotalWithTodayMin / 60;
     const [rwth, rwtm] = calculateRemaining(wTotalH, true, weekTargetH);
 
-    const todayCapacityMins = Math.max(0, DAILY_CAP_HOURS * 60 - (todayH * 60 + todayM));
+    const todayCapacityMins = Math.max(0, (settings?.dailyCapMinutes ?? DAILY_CAP_HOURS * 60) - (todayH * 60 + todayM));
     const weeklyRemainingMins = rwth * 60 + rwtm;
 
     if (weeklyRemainingMins > 0 && weeklyRemainingMins <= todayCapacityMins) {

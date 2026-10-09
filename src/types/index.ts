@@ -10,8 +10,21 @@ export interface DailyTotal {
 }
 
 export type Locale = 'tr' | 'en';
+export type LocalePreference = Locale | 'auto';
 
 export type CalcMode = 'sessions' | 'span';
+
+export interface AppSettings {
+  dailyTargetMinutes: number;
+  dailyCapMinutes: number;
+  shortDayThresholdMinutes: number;
+  earliestEntry: string;
+  latestExit: string;
+  earliestExit: string;
+  workdays: number[];
+  autoDetectLeave: boolean;
+  locale: LocalePreference;
+}
 
 /**
  * A once-a-day snapshot of the ARGEPORTAL data, persisted to

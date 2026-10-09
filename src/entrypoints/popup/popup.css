@@ -7,29 +7,35 @@
   --faint: #97a1b2;
   --border: #e5e9ef;
   --track: #e6ebf1;
-  --accent: #10b981;
-  --accent-soft: rgba(16, 185, 129, 0.12);
-  --amber: #f59e0b;
-  --amber-soft: rgba(245, 158, 11, 0.12);
+  --accent: #527f75;
+  --accent-soft: rgba(82, 127, 117, 0.14);
+  --amber: #69748a;
+  --amber-soft: rgba(105, 116, 138, 0.12);
   --red: #ef4444;
   --red-soft: rgba(239, 68, 68, 0.1);
-  --blue: #3b82f6;
+  --blue: #527f75;
+  --leave-segment: #cbd0d8;
 }
 
 /* Follows the OS/browser theme — the popup has no toggle of its own. */
 @media (prefers-color-scheme: dark) {
   :root {
-    --surface: #12171f;
-    --inset: #0d131b;
-    --nav: #0d1219;
-    --text: #e8edf4;
-    --muted: #8b96a7;
-    --faint: #5f6b7d;
-    --border: #232c38;
-    --track: #232c38;
-    --accent-soft: rgba(16, 185, 129, 0.16);
-    --amber-soft: rgba(245, 158, 11, 0.16);
-    --red-soft: rgba(239, 68, 68, 0.16);
+    --surface: #1f2229;
+    --inset: #272b33;
+    --nav: #1f2229;
+    --text: #e4e6ea;
+    --muted: #9097a3;
+    --faint: #737a85;
+    --border: #353a44;
+    --track: #353a44;
+    --accent: #7fb5a8;
+    --accent-soft: rgba(127, 181, 168, 0.14);
+    --amber: #9097a3;
+    --amber-soft: rgba(144, 151, 163, 0.14);
+    --red: #c98289;
+    --red-soft: rgba(201, 130, 137, 0.14);
+    --blue: #7fb5a8;
+    --leave-segment: #454b55;
   }
 }
 
@@ -41,9 +47,9 @@ html,
 body {
   margin: 0;
   padding: 0;
-  width: 440px;
-  min-width: 440px;
-  max-width: 440px;
+  width: 380px;
+  min-width: 380px;
+  max-width: 380px;
 }
 
 body {

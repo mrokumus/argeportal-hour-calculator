@@ -7,7 +7,7 @@ export function Footer() {
   const version = browser.runtime.getManifest().version;
   const [linkText, setLinkText] = useState(t('checking'));
   const [linkHref, setLinkHref] = useState<string | undefined>(undefined);
-  const [linkColor, setLinkColor] = useState('#bbb');
+  const [linkColor, setLinkColor] = useState('var(--muted)');
 
   useEffect(() => {
     fetchLatestVersion().then((latest) => {
@@ -18,11 +18,11 @@ export function Footer() {
       }
       if (isNewerVersion(latest, version)) {
         setLinkText(t('updateAvailable', { v: latest }));
-        setLinkColor('#ef4444');
+        setLinkColor('var(--red)');
         setLinkHref(RELEASES_URL);
       } else {
         setLinkText(t('upToDate'));
-        setLinkColor('#10b981');
+        setLinkColor('var(--accent)');
         setLinkHref(undefined);
       }
     });

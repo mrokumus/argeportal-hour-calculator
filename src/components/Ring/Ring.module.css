@@ -17,6 +17,31 @@
   border-color: var(--faint);
 }
 
+.compact {
+  padding: 8px 10px;
+  gap: 4px;
+}
+
+.compact .ringWrap,
+.compact .ring {
+  width: 104px;
+  height: 104px;
+}
+
+.compact .val {
+  font-size: 18px;
+}
+
+.compact .breakdown {
+  inset: 1px -16px;
+  gap: 5px;
+}
+
+.compact .chip {
+  font-size: 10.5px;
+  padding: 2px 8px;
+}
+
 .gauge:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -143,6 +168,16 @@
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+
+.limit {
+  display: block;
+  min-height: 14px;
+  color: var(--blue);
+  font-size: 10px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
 }
 
 .ring {

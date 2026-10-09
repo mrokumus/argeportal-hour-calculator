@@ -44,6 +44,17 @@ export function LeaveInputs({ data, disabled, onLeaveChange }: Props) {
     onLeaveChange({ ...getInputValues(), autoDetected: data.autoDetected });
   }
 
+  function stepOoo(deltaMinutes: number) {
+    if (disabled) return;
+    const nextOoo = Math.max(0, parseOOO(oooRef.current?.value) + deltaMinutes);
+    if (oooRef.current) oooRef.current.value = formatOOO(nextOoo);
+    onLeaveChange({
+      leave: Math.max(0, parseInt(leaveRef.current?.value ?? '0') || 0),
+      ooo: nextOoo,
+      autoDetected: data.autoDetected,
+    });
+  }
+
   // On blur, re-assert the current data (normalises the field and recovers from
   // an external change that arrived while this field was focused, which the
   // focus-guarded sync effect skips).
@@ -79,17 +90,41 @@ export function LeaveInputs({ data, disabled, onLeaveChange }: Props) {
           className={styles.tooltip}
           dangerouslySetInnerHTML={{ __html: t('oooTooltip') }}
         />
-        <input
-          ref={oooRef}
-          id="pdks-ooo"
-          type="text"
-          placeholder="0:00"
-          defaultValue={formatOOO(data.ooo)}
-          disabled={disabled}
-          className={`${styles.input} ${styles.ooo}`}
-          onChange={handleOooChange}
-          onBlur={syncOoo}
-        />
+        <div className={styles.oooStepper}>
+          <button
+            type="button"
+            aria-label={t('decreaseTime')}
+            disabled={disabled || data.ooo <= 0}
+            onClick={() => stepOoo(-15)}
+          >−</button>
+          <input
+            ref={oooRef}
+            id="pdks-ooo"
+            type="text"
+            inputMode="numeric"
+            placeholder="0:00"
+            defaultValue={formatOOO(data.ooo)}
+            disabled={disabled}
+            className={`${styles.input} ${styles.ooo}`}
+            onChange={handleOooChange}
+            onKeyDown={(event) => {
+              if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                stepOoo(15);
+              } else if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                stepOoo(-15);
+              }
+            }}
+            onBlur={syncOoo}
+          />
+          <button
+            type="button"
+            aria-label={t('increaseTime')}
+            disabled={disabled}
+            onClick={() => stepOoo(15)}
+          >+</button>
+        </div>
       </div>
     </div>
   );
