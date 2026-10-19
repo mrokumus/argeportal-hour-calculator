@@ -825,6 +825,9 @@ export function App() {
             <span className={styles.previousWeekSummary}>
               {t('lastWeek')} <b>{previousWeek.complete ? minutesToTime(previousWeek.minutes) : '—'}</b>
               {previousWeek.targetMet && <span className={styles.previousWeekComplete} role="img" aria-label={t('weekCompleted')}> ✓</span>}
+              {previousWeek.complete && !previousWeek.targetMet && previousLeave?.key === previousWeekKey && !devActive && (
+                <span className={styles.previousWeekIncomplete} role="img" aria-label={t('weekIncomplete')}> ✕</span>
+              )}
               <small>{formatDateRange(previousWeek.periodStart, previousWeek.periodEnd)}</small>
               {!previousWeek.complete && <small>{t('previousWeekUnavailable')}</small>}
             </span>

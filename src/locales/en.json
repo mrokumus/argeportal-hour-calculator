@@ -143,6 +143,7 @@
   "feedback": "Feedback",
   "lastWeek": "Last week",
   "previousWeekUnavailable": "Data unavailable",
+  "weekIncomplete": "Weekly target incomplete",
   "collapse": "Collapse",
   "expand": "Expand"
 }
