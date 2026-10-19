@@ -25,6 +25,8 @@ export interface AppSettings {
   earliestExit: string;
   workdays: number[];
   autoDetectLeave: boolean;
+  notifyDailyTarget: boolean;
+  notifyDailyCap: boolean;
   locale: LocalePreference;
 }
 

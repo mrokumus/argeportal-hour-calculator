@@ -29,6 +29,8 @@ const DEFAULT_LEAVE: LeaveData = { leave: 0, ooo: 0, autoDetected: true };
 
 const pad = (n: number) => String(n).padStart(2, '0');
 const EXIT_STEP_MINUTES = 15;
+const notificationBrowser = import.meta.env.BROWSER === 'firefox' ? 'Firefox' : 'Google Chrome';
+const extensionSettingsPage = import.meta.env.BROWSER === 'firefox' ? 'about:addons' : 'chrome://extensions';
 
 const initialSettings = (): AppSettings => ({
   ...DEFAULT_SETTINGS,
@@ -103,6 +105,55 @@ export function App() {
   const [portalUrlError, setPortalUrlError] = useState(false);
   const [settingsError, setSettingsError] = useState(false);
   const [settingsSaved, setSettingsSaved] = useState(false);
+  const [notificationStatus, setNotificationStatus] = useState<'idle' | 'sending' | 'sent' | 'denied' | 'failed' | 'reload'>('idle');
+
+  function hasNotificationManifestPermission() {
+    const declared = browser.runtime.getManifest().optional_permissions ?? [];
+    if (declared.includes('notifications')) return true;
+    setNotificationStatus('reload');
+    return false;
+  }
+
+  async function toggleWorkNotification(key: 'notifyDailyTarget' | 'notifyDailyCap', enabled: boolean) {
+    if (enabled && !hasNotificationManifestPermission()) return;
+    const id = crypto.randomUUID();
+    try {
+      // Dispatch durable intent before requesting permission. The worker remains
+      // alive if Chrome closes this popup while displaying its permission prompt.
+      const staging = browser.runtime.sendMessage({ type: 'PDKS_SET_NOTIFICATION_PREFERENCE', key, enabled, id });
+      const permission = enabled ? browser.permissions.request({ permissions: ['notifications'] }) : Promise.resolve(true);
+      const [response, granted] = await Promise.all([staging, permission]);
+      if (!response?.ok) { setNotificationStatus('reload'); return; }
+      if (!granted) {
+        await browser.runtime.sendMessage({ type: 'PDKS_CANCEL_NOTIFICATION_PERMISSION', id });
+        setNotificationStatus('denied'); return;
+      }
+      if (enabled) await browser.runtime.sendMessage({ type: 'PDKS_COMPLETE_NOTIFICATION_PERMISSION' });
+      setSettingsDraft(current => ({ ...current, [key]: enabled }));
+      setSettings(current => ({ ...current, [key]: enabled }));
+      setNotificationStatus('idle');
+    } catch {
+      setNotificationStatus('failed');
+    }
+  }
+
+  async function sendTestNotification() {
+    if (!hasNotificationManifestPermission()) return;
+    try {
+      const permissionRequest = browser.permissions.request({ permissions: ['notifications'] });
+      setNotificationStatus('sending');
+      if (!await permissionRequest) { setNotificationStatus('denied'); return; }
+      try {
+        const response = await browser.runtime.sendMessage({ type: 'PDKS_PREVIEW_WORK_NOTIFICATION' }) as { ok?: boolean } | undefined;
+        setNotificationStatus(response ? (response.ok ? 'sent' : 'failed') : 'reload');
+      } catch {
+        setNotificationStatus('reload');
+      }
+    } catch {
+      setNotificationStatus('failed');
+    }
+  }
+
 
   const effectiveNow = devNow ?? now;
   const weekKey = getWeekKey(0);
@@ -235,6 +286,14 @@ export function App() {
       return false;
     }
     const nextSettings = { ...settingsDraft, workdays: [...settingsDraft.workdays] };
+    // Toggles request permission themselves; saving must not be blocked by a revoked grant.
+    if ((nextSettings.notifyDailyTarget || nextSettings.notifyDailyCap)
+      && !await browser.permissions.contains({ permissions: ['notifications'] }).catch(() => false)) {
+      nextSettings.notifyDailyTarget = false;
+      nextSettings.notifyDailyCap = false;
+      setSettingsDraft(current => ({ ...current, notifyDailyTarget: false, notifyDailyCap: false }));
+      setNotificationStatus('denied');
+    }
     await Promise.all([savePortalUrl(normalized), saveSettings(nextSettings)]);
     setPortalUrl(normalized);
     setPortalUrlDraft(normalized);
@@ -477,6 +536,30 @@ export function App() {
                 onChange={(event) => setSettingsDraft((current) => ({ ...current, autoDetectLeave: event.target.checked }))}
               />
             </label>
+          </section>
+
+          <section className={styles.settingsSection}>
+            <h2>{t('workNotifications')}</h2>
+            <p className={styles.notificationHint}>{t('workNotificationsHint')}</p>
+            {(notificationStatus === 'failed' || notificationStatus === 'denied') && (
+              <p className={styles.notificationHint}>{t('systemNotificationHint', { browser: notificationBrowser })}</p>
+            )}
+            {(['notifyDailyTarget', 'notifyDailyCap'] as const).map(key => (
+              <label className={styles.toggleField} key={key}>
+                <span><strong>{t(key)}</strong></span>
+                <input type="checkbox" checked={settingsDraft[key]}
+                  onChange={event => void toggleWorkNotification(key, event.target.checked)} />
+              </label>
+            ))}
+            <button type="button" className={styles.settingsButton} disabled={notificationStatus === 'sending'}
+              onClick={() => void sendTestNotification()}>{t('sendTestNotification')}</button>
+            {notificationStatus !== 'idle' && <p className={styles.notificationHint} role="status">
+              {t(notificationStatus === 'sending' ? 'notificationSending'
+                : notificationStatus === 'sent' ? 'notificationSent'
+                : notificationStatus === 'denied' ? 'notificationPermissionDenied'
+                : notificationStatus === 'reload' ? 'notificationReloadRequired' : 'notificationFailed',
+                { browser: notificationBrowser, page: extensionSettingsPage })}
+            </p>}
           </section>
 
           <section className={styles.settingsSection}>

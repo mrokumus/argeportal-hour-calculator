@@ -8,7 +8,7 @@ type Params = Record<string, string | number>;
 const locales = { en, tr } as const;
 
 function browserLocale(): 'tr' | 'en' {
-  return (navigator.language || 'en').toLowerCase().startsWith('tr') ? 'tr' : 'en';
+  return (globalThis.navigator?.language || 'en').toLowerCase().startsWith('tr') ? 'tr' : 'en';
 }
 
 let _locale = browserLocale();
