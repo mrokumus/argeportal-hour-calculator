@@ -1,5 +1,6 @@
 import dayjs from 'dayjs';
-import { computeWeekData } from '../src/lib/calc';
+import { DEFAULT_SETTINGS } from '../src/config';
+import { computeWeekData, getWeeklyStatus } from '../src/lib/calc';
 import type { Snapshot } from '../src/types';
 
 describe('computeWeekData', () => {
@@ -101,7 +102,6 @@ describe('computeWeekData', () => {
     );
 
     expect([result.data.todayRemainingH, result.data.todayRemainingM]).toEqual([3, 0]);
-    expect([result.data.exitRemainingH, result.data.exitRemainingM]).toEqual([3, 0]);
   });
 
   it('caps today at 11h when calculating the weekly remainder', () => {
@@ -130,7 +130,8 @@ describe('computeWeekData', () => {
 
     expect(result.data.weekTargetH).toBe(45);
     expect(result.data.todayH).toBe(12);
-    expect([result.data.exitRemainingH, result.data.exitRemainingM]).toEqual([2, 0]);
+    expect(result.data.weekTotalWithTodayMin).toBe(43 * 60);
+    expect(result.data.weeklyRemainingMinutes).toBe(120);
     jest.useRealTimers();
   });
 
@@ -161,5 +162,46 @@ describe('computeWeekData', () => {
     expect(fridayExit - remaining(atFive)).toBe(7 * 60);
     expect(remaining(atFiveOhOne)).toBe(7 * 60 + 59);
     expect(fridayExit - remaining(atFiveOhOne)).toBe(7 * 60 + 1);
+  });
+});
+
+
+describe('weekly status displayed by the popup', () => {
+  const settings = { ...DEFAULT_SETTINGS, workdays: [1, 2, 3, 4, 5] };
+  it.each([
+    ['2026-08-07T16:00:00', 540, 0, false, 'day-end'],
+    ['2026-08-07T22:00:00', 180, 420, true, 'day-end'],
+    ['2026-08-07T18:00:00', 150, 300, true, 'latest-exit'],
+    ['2026-08-07T18:00:00', 361, 300, true, 'daily-cap'],
+    ['2026-08-07T18:00:00', 120, 300, true, 'finish'],
+    ['2026-08-07T18:00:00', 120, 300, false, 'remaining'],
+    ['2026-08-07T18:00:00', 0, 540, true, 'complete'],
+    ['2026-08-06T18:00:00', 120, 300, true, 'hidden'],
+  ])('%s remaining %s gives %s', (date, remaining, worked, open, kind) => {
+    const result = getWeeklyStatus(dayjs(date), remaining, worked, open, { ...settings, latestExit: '20:00' });
+    expect(result.kind).toBe(kind);
+    if (result.kind === 'finish') expect(result.time).toBe('20:00');
+  });
+  it('uses Thursday as the configured final workday', () => {
+    expect(getWeeklyStatus(dayjs('2026-08-06T14:00:00'), 60, 300, true,
+      { ...settings, workdays: [1, 2, 3, 4] })).toEqual({ kind: 'finish', time: '15:00' });
+  });
+  it('does not treat Friday as the final day when Saturday is configured', () => {
+    expect(getWeeklyStatus(dayjs('2026-08-07T14:00:00'), 60, 300, true,
+      { ...settings, workdays: [1, 2, 3, 4, 5, 6] }).kind).toBe('hidden');
+  });
+});
+
+
+describe('weekly completion before earliest entry', () => {
+  const settings = { ...DEFAULT_SETTINGS, workdays: [1, 2, 3, 4, 5], earliestEntry: '06:00', latestExit: '16:00' };
+  it('warns when starting at earliest entry would finish too late', () => {
+    expect(getWeeklyStatus(dayjs('2026-08-07T05:00:00'), 650, 0, false, settings).kind).toBe('latest-exit');
+  });
+  it('allows completion exactly at latest exit', () => {
+    expect(getWeeklyStatus(dayjs('2026-08-07T05:00:00'), 600, 0, false, settings).kind).toBe('remaining');
+  });
+  it('uses the actual clock for an already open session', () => {
+    expect(getWeeklyStatus(dayjs('2026-08-07T05:00:00'), 650, 0, true, settings)).toEqual({ kind: 'finish', time: '15:50' });
   });
 });

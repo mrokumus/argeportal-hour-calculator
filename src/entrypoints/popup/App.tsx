@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
 import type { AppSettings, CalcMode, LeaveData, Snapshot } from '../../types';
-import { computeWeekData } from '../../lib/calc';
+import { computeWeekData, getWeeklyStatus } from '../../lib/calc';
 import {
   getCalcMode,
   getLeaveData,
@@ -546,9 +546,9 @@ export function App() {
     todayRemainingM,
     firstRecord,
     weekTotalMin,
+    weekTotalWithTodayMin,
+    weeklyRemainingMinutes,
     shortDays,
-    exitRemainingH,
-    exitRemainingM,
   } = data;
 
   const isCurrentWeek = true;
@@ -565,7 +565,6 @@ export function App() {
   const hasStartedToday = !!firstRecord && today.isSame(dayjs(firstRecord), 'day');
 
   // ---- week ring ----
-  const weekTotalWithTodayMin = weekTotalMin + cappedTodayMin;
   const wTotalH = weekTotalWithTodayMin / 60;
   const [wth, wtm] = calculateTime(wTotalH);
   const [rwth, rwtm] = calculateRemaining(wTotalH, true, weekTargetH);
@@ -622,7 +621,6 @@ export function App() {
   const tomorrowIsWorkday = settings.workdays.includes(tomorrow.day())
     && tomorrowOffset > todayOffset;
   const showPlanner = planningToday || tomorrowIsWorkday;
-  const weeklyRemainingMinutes = weekRemH * 60 + weekRemM;
   const plannedDate = planningToday ? today : tomorrow;
   const plannedDayLabel = t(weekDayFullLabels[plannedDate.day()]);
   const plannedDayOffset = plannedDate.day() === 0 ? 6 : plannedDate.day() - 1;
@@ -671,14 +669,27 @@ export function App() {
   let compactTodayStatus = t('targetCompleteCompact');
   if (snapshot.todayHasOpenSession === false) {
     compactTodayStatus = t('checkedOutCompact');
-  } else if (weekDone) {
-    compactTodayStatus = t('weekCompleteCompact');
-  } else if (exitRemainingH !== 0 || exitRemainingM !== 0) {
-    const lt = today.add(exitRemainingH, 'h').add(exitRemainingM, 'm');
+  } else if (todayRemainingH !== 0 || todayRemainingM !== 0) {
+    const lt = today.add(todayRemainingH, 'h').add(todayRemainingM, 'm');
     const exitClock = `${pad(lt.hour())}:${pad(lt.minute())}`;
     compactTodayStatus = lt.isSame(today, 'day')
       ? t('compactExitTime', { t: exitClock })
       : t('tomorrowAt', { t: exitClock });
+  }
+
+  const weeklyState = getWeeklyStatus(today, weeklyRemainingMinutes, todayMin,
+    hasStartedToday && snapshot.todayHasOpenSession !== false, settings);
+  const weeklyCompletionTime = weeklyState.kind === 'finish' ? weeklyState.time : null;
+  let weeklyStatus: string | null = null;
+  switch (weeklyState.kind) {
+    case 'complete': weeklyStatus = t('canLeave'); break;
+    case 'daily-cap': weeklyStatus = t('weeklyCannotFinish', {
+      h: formatDuration(Math.floor(dailyCapMin / 60), dailyCapMin % 60),
+    }); break;
+    case 'day-end': weeklyStatus = t('weeklyPastMidnight'); break;
+    case 'latest-exit': weeklyStatus = t('weeklyPastLatestExit', { t: settings.latestExit }); break;
+    case 'remaining': weeklyStatus = t('weeklyWorkRemaining', { h: weekRemH, m: weekRemM }); break;
+    case 'finish': weeklyStatus = t('weeklyFinishAt', { t: weeklyState.time }); break;
   }
 
   return (
@@ -694,16 +705,18 @@ export function App() {
             <>
               <div className={styles.cardRow}>
                 <span className={styles.mutedLabel}>{t('today')}</span>
-                <span className={styles.statusTag}>
+              </div>
+              <div className={styles.todayMetricRow}>
+                <div className={styles.bigMetric}>
+                  {todayH}:{pad(todayM)}
+                  <small>
+                    / {minutesToTime(dailyTargetMin)}
+                    {todayMin > dailyTargetMin ? ` · ${formatCompactDuration(todayMin - dailyTargetMin)}` : ''}
+                  </small>
+                </div>
+                <span className={`${styles.statusTag} ${styles.exitTimeStatus}`}>
                   {hasStartedToday ? compactTodayStatus : t('remainingChip', { h: todayRemainingH, m: todayRemainingM })}
                 </span>
-              </div>
-              <div className={styles.bigMetric}>
-                {todayH}:{pad(todayM)}
-                <small>
-                  / {minutesToTime(dailyTargetMin)}
-                  {todayMin > dailyTargetMin ? ` · ${formatCompactDuration(todayMin - dailyTargetMin)}` : ''}
-                </small>
               </div>
               <div className={styles.progressBar}>
                 <i style={{ width: `${Math.min((todayMin / dailyTargetMin) * 100, 100)}%` }} />
@@ -730,6 +743,17 @@ export function App() {
               </div>
             ))}
           </div>
+          {isCurrentWeek && weeklyStatus && (
+            <div className={`${styles.statusTag} ${styles.todayStatus}`}>
+              {weeklyCompletionTime ? (
+                <>
+                  {t('weeklyFinishAt', { t: '{time}' }).split('{time}')[0]}
+                  <strong>{weeklyCompletionTime}</strong>
+                  {t('weeklyFinishAt', { t: '{time}' }).split('{time}')[1]}
+                </>
+              ) : weeklyStatus}
+            </div>
+          )}
         </section>
 
         {isCurrentWeek && showPlanner && (
