@@ -27,7 +27,13 @@ export function DailyOooEditor({ date, data, baseCap, disabled, onChange, onClos
   }
   const unassigned = getUnassignedOoo(data);
   return (
-    <form className={styles.editor} onSubmit={event => {
+    <form className={styles.editor} onKeyDown={event => {
+      if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+      event.preventDefault();
+      const match = /^(\d{1,2}):([0-5]\d)$/.exec(draft);
+      const current = match ? Number(match[1]) * 60 + Number(match[2]) : minutes;
+      commit(Math.max(0, Math.min(1440, current + (event.key === 'ArrowUp' ? 15 : -15))));
+    }} onSubmit={event => {
       event.preventDefault();
       const match = /^(\d{1,2}):([0-5]\d)$/.exec(draft);
       const value = match ? Number(match[1]) * 60 + Number(match[2]) : -1;
@@ -41,7 +47,7 @@ export function DailyOooEditor({ date, data, baseCap, disabled, onChange, onClos
       </div>
       <div className={styles.controls}>
         <button type="button" disabled={disabled || minutes === 0} onClick={() => commit(minutes - 15)} aria-label={t('decreaseTime')}>−</button>
-        <input id="daily-ooo" type="text" inputMode="numeric" value={draft} disabled={disabled}
+        <input autoFocus id="daily-ooo" type="text" inputMode="numeric" value={draft} disabled={disabled}
           aria-invalid={invalid} aria-describedby="daily-ooo-hint" onChange={event => { setDraft(event.target.value); setInvalid(false); }} />
         <button type="button" disabled={disabled || minutes >= 1440} onClick={() => commit(minutes + 15)} aria-label={t('increaseTime')}>+</button>
         <button type="submit" disabled={disabled}>{t('save')}</button>
