@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
 import { computeWeekData, getPreviousWeekSummary, getWeeklyStatus } from '../src/lib/calc';
-import { getDailyCap, getDailyOoo, getWeekOoo, getUnassignedOoo, setDailyOoo, assignUnassignedOoo, parseDailyOoo } from '../src/lib/ooo';
+import { getDailyCap, getDailyOoo, getWeekOoo, getUnassignedOoo, setDailyOoo, assignUnassignedOoo } from '../src/lib/ooo';
 import { DEFAULT_SETTINGS } from '../src/config';
 import type { LeaveData, Snapshot } from '../src/types';
 
@@ -102,12 +102,4 @@ it('validates invalid and oversized OOO values', () => {
   expect(getDailyOoo(setDailyOoo(empty, tuesday, -1), tuesday)).toBe(0);
   expect(getDailyOoo(setDailyOoo(empty, tuesday, NaN), tuesday)).toBe(0);
   expect(getDailyOoo(setDailyOoo(empty, tuesday, 2000), tuesday)).toBe(1440);
-});
-
-
-it.each([
-  ['2', 120], ['2:00', 120], ['2:15', 135], ['0', 0], ['24', 1440],
-  [' 2 ', 120], ['24:01', null], ['25', null], ['2:60', null], ['2:', null], ['abc', null], ['', null],
-])('parses daily OOO %s as %s', (input, expected) => {
-  expect(parseDailyOoo(input)).toBe(expected);
 });

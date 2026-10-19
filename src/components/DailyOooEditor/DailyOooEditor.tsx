@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { LeaveData } from '../../types';
-import { getDailyOoo, getDailyCap, getUnassignedOoo, setDailyOoo, assignUnassignedOoo, parseDailyOoo } from '../../lib/ooo';
+import { getDailyOoo, getDailyCap, getUnassignedOoo, setDailyOoo, assignUnassignedOoo } from '../../lib/ooo';
 import { formatOOO } from '../../lib/time-utils';
 import { t } from '../../lib/i18n';
 import styles from './DailyOooEditor.module.css';
@@ -25,13 +25,13 @@ export function DailyOooEditor({ date, data, baseCap, disabled, onChange, onClos
     setDraft(formatOOO(Math.min(1440, Math.max(0, value))));
     setInvalid(false);
   }
-  const stepBase = parseDailyOoo(draft) ?? minutes;
   const unassigned = getUnassignedOoo(data);
   return (
     <form className={styles.editor} onSubmit={event => {
       event.preventDefault();
-      const value = parseDailyOoo(draft);
-      if (value === null) { setInvalid(true); return; }
+      const match = /^(\d{1,2}):([0-5]\d)$/.exec(draft);
+      const value = match ? Number(match[1]) * 60 + Number(match[2]) : -1;
+      if (value < 0 || value > 1440) { setInvalid(true); return; }
       commit(value);
       if (!disabled) onClose();
     }}>
@@ -40,16 +40,10 @@ export function DailyOooEditor({ date, data, baseCap, disabled, onChange, onClos
         <button type="button" onClick={onClose} aria-label={t('close')}>×</button>
       </div>
       <div className={styles.controls}>
-        <button type="button" disabled={disabled || stepBase === 0} onClick={() => commit(stepBase - 15)} aria-label={t('decreaseTime')}>−</button>
+        <button type="button" disabled={disabled || minutes === 0} onClick={() => commit(minutes - 15)} aria-label={t('decreaseTime')}>−</button>
         <input id="daily-ooo" type="text" inputMode="numeric" value={draft} disabled={disabled}
-          onKeyDown={event => {
-            if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
-              event.preventDefault();
-              commit(stepBase + (event.key === 'ArrowUp' ? 15 : -15));
-            }
-          }}
           aria-invalid={invalid} aria-describedby="daily-ooo-hint" onChange={event => { setDraft(event.target.value); setInvalid(false); }} />
-        <button type="button" disabled={disabled || stepBase >= 1440} onClick={() => commit(stepBase + 15)} aria-label={t('increaseTime')}>+</button>
+        <button type="button" disabled={disabled || minutes >= 1440} onClick={() => commit(minutes + 15)} aria-label={t('increaseTime')}>+</button>
         <button type="submit" disabled={disabled}>{t('save')}</button>
       </div>
       <small id="daily-ooo-hint">{t('dailyOooLimit', { h: formatOOO(getDailyCap(baseCap, data, date)) })}</small>
