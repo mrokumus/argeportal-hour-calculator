@@ -28,7 +28,7 @@ CI (`.github/workflows/ci.yml`) runs `npm test`, `npm run typecheck`, and `npm r
 
 The UI is a **browser-action popup** (`action.default_popup`). In sessions mode, today worked is completed sessions plus elapsed time since the latest open check-in; span mode uses now minus the first check-in. Completed sessions and the latest punch are cached; refresh after new punches so the popup can track the current open session correctly. That parse is cached as a `Snapshot` in `browser.storage.local`, and the popup recomputes everything from the snapshot + current time, even with the ARGEPORTAL page closed.
 
-Because there's a popup, `action.onClicked` never fires — **there is no `background.ts`** (it was deleted; don't reintroduce icon-on-click logic there).
+Because there is a popup, `action.onClicked` never fires. `src/entrypoints/background.ts` handles work notifications, using alarms and optional notification permission; it does not handle icon clicks. Notifications use same-day, explicitly open cached sessions, so refresh after breaks/check-out. Notification thresholds follow the configured daily target and the configured cap plus that day’s OOO.
 
 Data flow on popup open:
 

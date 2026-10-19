@@ -75,7 +75,7 @@ export async function getSettings(): Promise<AppSettings> {
   const stored = (await browser.storage.local.get(STORAGE_KEY_SETTINGS))[STORAGE_KEY_SETTINGS];
   const legacyTarget = await getDailyTarget();
   const candidate = stored && typeof stored === 'object'
-    ? stored as Partial<AppSettings> & { defaultExit?: string }
+    ? stored as Partial<AppSettings> & { defaultExit?: string; notifyNineHours?: boolean; notifyElevenHours?: boolean }
     : {};
   const locale = candidate.locale === 'tr' || candidate.locale === 'en' || candidate.locale === 'auto'
     ? candidate.locale
@@ -86,6 +86,8 @@ export async function getSettings(): Promise<AppSettings> {
     dailyTargetMinutes: candidate.dailyTargetMinutes ?? Math.round(legacyTarget * 60),
     earliestExit: candidate.earliestExit ?? candidate.defaultExit ?? DEFAULT_SETTINGS.earliestExit,
     locale,
+    notifyDailyTarget: candidate.notifyDailyTarget ?? candidate.notifyNineHours ?? DEFAULT_SETTINGS.notifyDailyTarget,
+    notifyDailyCap: candidate.notifyDailyCap ?? candidate.notifyElevenHours ?? DEFAULT_SETTINGS.notifyDailyCap,
     workdays: Array.isArray(candidate.workdays) && candidate.workdays.length
       ? candidate.workdays.filter((day) => Number.isInteger(day) && day >= 0 && day <= 6)
       : [...DEFAULT_SETTINGS.workdays],
