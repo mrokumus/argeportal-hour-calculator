@@ -7,6 +7,8 @@
   <meta name="description" content="Release history of the PDKS Time Calculator browser extension.">
   <link rel="icon" type="image/png" href="assets/favicon.png">
   <link rel="stylesheet" href="assets/site.css">
+  <link rel="alternate" hreflang="en" href="https://mrokumus.github.io/argeportal-hour-calculator/changelog.html">
+  <link rel="alternate" hreflang="tr" href="https://mrokumus.github.io/argeportal-hour-calculator/tr/changelog.html">
 </head>
 <body>
   <a class="skip" href="#content">Skip to content</a>
@@ -19,6 +21,7 @@
           <li><a href="changelog.html" aria-current="page">Changelog</a></li>
           <li><a href="privacy.html">Privacy</a></li>
           <li><a href="https://github.com/mrokumus/argeportal-hour-calculator">GitHub</a></li>
+          <li><a class="lang" href="tr/changelog.html" hreflang="tr" lang="tr">Türkçe</a></li>
         </ul>
       </nav>
     </div>
@@ -28,7 +31,7 @@
     <div class="wrap doc">
       <h1>Changelog</h1>
       <p class="meta">What changed in each release. Store updates can take a few days to reach everyone after a release.</p>
-      <div id="releases" aria-live="polite">
+      <div id="releases" data-lang="en" aria-live="polite">
         <p class="status">Loading releases…</p>
       </div>
     </div>
@@ -41,93 +44,7 @@
     </div>
   </footer>
 
-  <script>
-    // Rendered from CHANGELOG.md on main so this page never drifts from the repository.
-    (function () {
-      var REPO = 'https://github.com/mrokumus/argeportal-hour-calculator';
-      var SOURCE = 'https://raw.githubusercontent.com/mrokumus/argeportal-hour-calculator/main/CHANGELOG.md';
-      var root = document.getElementById('releases');
-
-      function escape(text) {
-        return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-      }
-
-      function inline(text) {
-        return escape(text)
-          .replace(/`([^`]+)`/g, '<code>$1</code>')
-          .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-          .replace(/\[([^\]]+)\]\((https:\/\/[^)\s]+)\)/g, '<a href="$2">$1</a>');
-      }
-
-      function render(markdown) {
-        var lines = markdown.split(/\r?\n/);
-        var links = {};
-        lines.forEach(function (line) {
-          var ref = line.match(/^\[([^\]]+)\]:\s*(https:\/\/\S+)/);
-          if (ref) links[ref[1]] = ref[2];
-        });
-
-        var html = '';
-        var inRelease = false;
-        var inList = false;
-        var first = true;
-        function closeList() { if (inList) { html += '</ul>'; inList = false; } }
-        function closeRelease() { closeList(); if (inRelease) { html += '</section>'; inRelease = false; } }
-
-        lines.forEach(function (line) {
-          if (/^\[[^\]]+\]:/.test(line) || /^# /.test(line)) return;
-          var release = line.match(/^## \[([^\]]+)\](?:\s*-\s*(\d{4}-\d{2}-\d{2}))?/);
-          if (release) {
-            closeRelease();
-            var version = escape(release[1]);
-            var date = release[2];
-            var tag = links[release[1]] ? REPO + '/releases/tag/v' + encodeURIComponent(release[1]) : null;
-            html += '<section class="release" id="v' + version + '"><header><h2>'
-              + (tag ? '<a href="' + tag + '">v' + version + '</a>' : 'v' + version) + '</h2>'
-              + (date ? '<time datetime="' + date + '">' + new Date(date + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) + '</time>' : '')
-              + (first ? '<span class="latest">Latest</span>' : '')
-              + '</header>';
-            inRelease = true;
-            first = false;
-            return;
-          }
-          var heading = line.match(/^### (.+)/);
-          if (heading) { closeList(); html += '<h3>' + inline(heading[1]) + '</h3>'; return; }
-          var item = line.match(/^- (.+)/);
-          if (item && inRelease) {
-            if (!inList) { html += '<ul>'; inList = true; }
-            html += '<li>' + inline(item[1]) + '</li>';
-            return;
-          }
-          if (!line.trim()) { closeList(); return; }
-          // Intro text belongs to the page header; trailing notes close the release list.
-          if (!inRelease && first) return;
-          closeRelease();
-          html += '<p>' + inline(line) + '</p>';
-        });
-        closeRelease();
-        return html;
-      }
-
-      fetch(SOURCE, { cache: 'no-cache' })
-        .then(function (response) {
-          if (!response.ok) throw new Error(response.status);
-          return response.text();
-        })
-        .then(function (markdown) {
-          root.innerHTML = render(markdown);
-          if (location.hash) {
-            var target = document.getElementById(location.hash.slice(1));
-            if (target) target.scrollIntoView();
-          }
-        })
-        .catch(function () {
-          root.innerHTML = '<p class="status">The changelog could not be loaded. '
-            + 'See <a href="' + REPO + '/blob/main/CHANGELOG.md">CHANGELOG.md on GitHub</a> '
-            + 'or the <a href="' + REPO + '/releases">Releases page</a>.</p>';
-        });
-    })();
-  </script>
+  <script src="assets/changelog.js"></script>
   <noscript>
     <div class="wrap doc"><p class="status">See <a href="https://github.com/mrokumus/argeportal-hour-calculator/blob/main/CHANGELOG.md">CHANGELOG.md on GitHub</a>.</p></div>
   </noscript>
