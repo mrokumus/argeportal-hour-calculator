@@ -141,6 +141,9 @@
   "weeklyPastMidnight": "Weekly target cannot be completed before midnight",
   "weeklyPastLatestExit": "Weekly target cannot be completed by the latest exit time ({t})",
   "feedback": "Feedback",
+  "lastWeek": "Last week",
+  "previousWeekUnavailable": "Data unavailable",
+  "weekIncomplete": "Weekly target incomplete",
   "collapse": "Collapse",
   "expand": "Expand"
 }

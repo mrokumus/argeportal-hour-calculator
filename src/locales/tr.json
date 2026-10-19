@@ -141,6 +141,9 @@
   "weeklyPastMidnight": "Haftalık hedef gece yarısından önce tamamlanamaz",
   "weeklyPastLatestExit": "Haftalık hedef son çıkış saatine ({t}) kadar tamamlanamaz",
   "feedback": "Geri bildirim",
+  "lastWeek": "Geçen hafta",
+  "previousWeekUnavailable": "Veri alınamadı",
+  "weekIncomplete": "Haftalık hedef tamamlanmadı",
   "collapse": "Daralt",
   "expand": "Genişlet"
 }
