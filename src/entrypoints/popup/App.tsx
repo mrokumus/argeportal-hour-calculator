@@ -823,7 +823,7 @@ export function App() {
           <span>{t('monthlyTotal')} <b>{formatDuration(monthlyH, monthlyM)}</b></span>
           {previousWeek.visible && (
             <span className={styles.previousWeekSummary}>
-              {t('lastWeek')} <b>{previousWeek.complete ? minutesToTime(previousWeek.minutes) : '—'}</b>
+              {t('lastWeek')} <b>{previousWeek.complete ? formatDuration(Math.floor(previousWeek.minutes / 60), previousWeek.minutes % 60) : '—'}</b>
               {previousWeek.targetMet && <span className={styles.previousWeekComplete} role="img" aria-label={t('weekCompleted')}> ✓</span>}
               {previousWeek.complete && !previousWeek.targetMet && previousLeave?.key === previousWeekKey && !devActive && (
                 <span className={styles.previousWeekIncomplete} role="img" aria-label={t('weekIncomplete')}> ✕</span>
