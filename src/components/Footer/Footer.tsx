@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { fetchLatestVersion, isNewerVersion, RELEASES_URL } from '../../lib/network';
 import { t } from '../../lib/i18n';
+import { FEEDBACK_URL } from '../../config';
 import styles from './Footer.module.css';
 
 export function Footer() {
@@ -30,15 +31,20 @@ export function Footer() {
 
   return (
     <div className={styles.footer}>
-      <span className={styles.version}>v{version.replace(/^v/, '')}</span>
-      <a
-        className={styles.link}
-        href={linkHref}
-        target="_blank"
-        rel="noreferrer"
-        style={{ color: linkColor, cursor: linkHref ? 'pointer' : 'default' }}
-      >
-        {linkText}
+      <div className={styles.versionStatus}>
+        <span className={styles.version}>v{version.replace(/^v/, '')}</span>
+        <a
+          className={styles.link}
+          href={linkHref}
+          target="_blank"
+          rel="noreferrer"
+          style={{ color: linkColor, cursor: linkHref ? 'pointer' : 'default' }}
+        >
+          {linkText}
+        </a>
+      </div>
+      <a className={styles.link} href={FEEDBACK_URL} target="_blank" rel="noopener noreferrer">
+        {t('feedback')} ↗
       </a>
     </div>
   );

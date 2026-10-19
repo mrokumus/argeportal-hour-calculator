@@ -140,6 +140,7 @@
   "weeklyWorkRemaining": "To weekly target: {h}h {m}m",
   "weeklyPastMidnight": "Weekly target cannot be completed before midnight",
   "weeklyPastLatestExit": "Weekly target cannot be completed by the latest exit time ({t})",
+  "feedback": "Feedback",
   "collapse": "Collapse",
   "expand": "Expand"
 }
