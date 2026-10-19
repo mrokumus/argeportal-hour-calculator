@@ -1,3 +1,4 @@
+import type { Dayjs } from 'dayjs';
 import { DAILY_CAP_HOURS } from '../config';
 
 export function getMondayOfWeek(offset: number, baseDate: Date = new Date()): Date {
@@ -135,4 +136,10 @@ export function countValidWorkdays(
 /** Bound manually entered or stored leave to the workdays available this week. */
 export function clampLeaveDays(value: number, validWorkdays: number): number {
   return Math.min(validWorkdays, Math.max(0, Number.isFinite(value) ? Math.floor(value) : 0));
+}
+
+/** Round check-ins up so a partial first minute never advances the exit time. */
+export function roundCheckInUp(value: Dayjs): Dayjs {
+  const minute = value.startOf('minute');
+  return value.isSame(minute) ? minute : minute.add(1, 'minute');
 }

@@ -7,6 +7,7 @@ import {
   calculateRemaining,
   capDailyHours,
   clampLeaveDays,
+  roundCheckInUp,
 } from './time-utils';
 import { DAILY_TARGET_HOURS, SHORT_DAY_THRESHOLD_HOURS, DAILY_CAP_HOURS } from '../config';
 
@@ -101,7 +102,7 @@ export function computeWeekData(
       ? recordedTodayMins / 60
       : today.diff(firstRecord, 'hour', true);
     if (calcMode === 'sessions' && snapshot.todayHasOpenSession !== false && snapshot.lastRecordISO) {
-      const openStart = dayjs(snapshot.lastRecordISO);
+      const openStart = roundCheckInUp(dayjs(snapshot.lastRecordISO));
       if (openStart.isValid() && openStart.isSame(today, 'day')) {
         const completed = snapshot.todayCompletedSessionMinutes ?? recordedTodayMins ?? 0;
         workedHours = completed / 60 + Math.max(0, today.diff(openStart, 'hour', true));

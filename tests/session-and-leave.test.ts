@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
 import { computeWeekData } from '../src/lib/calc';
-import { clampLeaveDays } from '../src/lib/time-utils';
+import { clampLeaveDays, roundCheckInUp } from '../src/lib/time-utils';
 import { DEFAULT_SETTINGS } from '../src/config';
 import type { Snapshot } from '../src/types';
 
@@ -76,5 +76,35 @@ describe('fractional daily targets and leave limits', () => {
     expect(clampLeaveDays(-1, 6)).toBe(0);
     expect(clampLeaveDays(6, 7)).toBe(6);
     expect(clampLeaveDays(2.5, 7)).toBe(2);
+  });
+});
+
+
+describe('conservative check-in rounding', () => {
+  it.each([
+    ['09:00:00.000', '09:00:00'],
+    ['09:00:00.001', '09:01:00'],
+    ['09:00:01.000', '09:01:00'],
+    ['09:00:30.000', '09:01:00'],
+    ['09:00:59.000', '09:01:00'],
+  ])('rounds %s up to %s without changing exact minutes', (input, expected) => {
+    const rounded = roundCheckInUp(dayjs(`2026-08-07T${input}`));
+    expect(rounded.format('HH:mm:ss')).toBe(expected);
+    expect(roundCheckInUp(rounded).valueOf()).toBe(rounded.valueOf());
+  });
+  it.each(['sessions', 'span'] as const)('keeps one minute remaining at 18:00 in %s mode', mode => {
+    const time = dayjs('2026-08-07T18:00:00');
+    const { data } = computeWeekData({ ...snapshot,
+      firstRecordISO: roundCheckInUp(dayjs('2026-08-07T09:00:30')).toISOString(),
+      lastRecordISO: '2026-08-07T09:00:30', todayCompletedSessionMinutes: 0,
+      dailyTotalsSessions: {}, dailyTotalsSpan: {},
+    }, 0, mode, leave, time);
+    expect([data.todayH, data.todayM]).toEqual([8, 59]);
+    expect([data.todayRemainingH, data.todayRemainingM]).toEqual([0, 1]);
+  });
+  it('rounds the re-entry after a break up too', () => {
+    const { data } = computeWeekData({ ...snapshot, lastRecordISO: '2026-08-07T13:00:30' }, 0, 'sessions', leave, now);
+    expect([data.todayH, data.todayM]).toEqual([4, 59]);
+    expect([data.todayRemainingH, data.todayRemainingM]).toEqual([4, 1]);
   });
 });

@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
 import type { ParseResult, Snapshot } from '../types';
-import { calculateSessionTotalsFromPunches, mergeSessionTotals, timeNormalize } from './time-utils';
+import { calculateSessionTotalsFromPunches, mergeSessionTotals, timeNormalize, roundCheckInUp } from './time-utils';
 import {
   findEarliestPunch,
   findLatestPunch,
@@ -179,12 +179,13 @@ function collectPunchStrings(rows: NodeListOf<Element>): string[] {
 function scrapeFirstRecord(rows: NodeListOf<Element>, today: dayjs.Dayjs): string | null {
   const first = findEarliestPunch(collectPunchStrings(rows), today);
   if (!first) return null;
-  const adjusted = first.add(first.second() > 1 ? 60 - first.second() : 1, 'second');
-  return adjusted.toISOString();
+  return roundCheckInUp(first).toISOString();
 }
 
 function scrapeLastRecord(rows: NodeListOf<Element>, today: dayjs.Dayjs): string | null {
-  return findLatestPunch(collectPunchStrings(rows), today)?.toISOString() ?? null;
+  const last = findLatestPunch(collectPunchStrings(rows), today);
+  if (!last) return null;
+  return (hasOpenSession(rows, today) ? roundCheckInUp(last) : last).toISOString();
 }
 
 /** Punches alternate check-in/check-out; an odd count means work is still active. */
