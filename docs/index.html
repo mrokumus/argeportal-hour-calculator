@@ -6,21 +6,119 @@
   <meta name="google-site-verification" content="bZT4MzkTJ8CVvJa15QlxTh22szAyIfporwOfRZVE3wQ">
   <title>PDKS Time Calculator</title>
   <meta name="description" content="A browser extension that calculates working-hour summaries from the ARGEPORTAL PDKS page.">
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="stylesheet" href="assets/site.css">
 </head>
 <body>
-  <main>
-    <h1>PDKS Time Calculator</h1>
-    <p>
-      PDKS Time Calculator is an open-source browser extension that reads working-time
-      records from the ARGEPORTAL PDKS page at the user's request and calculates daily,
-      weekly, and monthly summaries locally in the browser.
-    </p>
-    <p>The extension does not operate a remote backend and does not sell user data.</p>
-    <nav>
-      <a href="privacy.html">Privacy Policy</a>
-      ·
-      <a href="https://github.com/mrokumus/argeportal-hour-calculator">Source code</a>
-    </nav>
+  <a class="skip" href="#content">Skip to content</a>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="./"><img src="assets/icon128.png" alt="">PDKS Time Calculator</a>
+      <nav class="site-nav" aria-label="Main">
+        <ul>
+          <li><a href="./" aria-current="page">Home</a></li>
+          <li><a href="changelog.html">Changelog</a></li>
+          <li><a href="privacy.html">Privacy</a></li>
+          <li><a href="https://github.com/mrokumus/argeportal-hour-calculator">GitHub</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="content">
+    <div class="wrap">
+      <section class="hero">
+        <div>
+          <span class="eyebrow">Free and open source · Chrome &amp; Firefox</span>
+          <h1>Your working hours from ARGEPORTAL, at a glance.</h1>
+          <p class="lead">
+            PDKS Time Calculator reads your PDKS records when you ask it to and shows daily,
+            weekly and monthly totals, your exit time and what is left for the week. Everything
+            is calculated locally in your browser.
+          </p>
+          <div class="actions">
+            <a class="btn primary" href="https://chromewebstore.google.com/detail/pdks-time-calculator/lfndjhccealnhplglfbfhbjfcabllmfc">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/><path d="M12 8.5h8.2M8.97 13.75 4.9 6.7M15.03 13.75 10.9 20.9"/></svg>
+              Add to Chrome
+            </a>
+            <a class="btn" href="https://addons.mozilla.org/en-US/firefox/addon/pdks-time-calculator/">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9"/><path d="M21 12c0-3-1.5-5.5-4-7 .5 2 0 3.5-1 4.5-1-2-3-3-5-3 1 1.5 1 3 0 4.5-1.5 2 0 5 3 5s4-2 4-4"/></svg>
+              Add to Firefox
+            </a>
+          </div>
+          <p class="note">Works only with ARGEPORTAL portals used by technopark companies.</p>
+        </div>
+        <div class="hero-art"><img src="assets/icon128.png" alt=""></div>
+      </section>
+
+      <section class="block" aria-labelledby="features">
+        <h2 id="features">What it does</h2>
+        <p class="sub">Everything you check by hand on the PDKS page, calculated for you in the toolbar popup.</p>
+        <div class="grid">
+          <article class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+            <h3>Live daily progress</h3>
+            <p>Time worked today, what remains for your daily target, and your estimated exit time.</p>
+          </article>
+          <article class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></div>
+            <h3>Weekly and monthly totals</h3>
+            <p>Totals with a daily cap, plus a summary of the previous week within the current month.</p>
+          </article>
+          <article class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></div>
+            <h3>Planning ahead</h3>
+            <p>Plan tomorrow's check-in from a target exit time; on Thursday, plan Friday from the live weekly remainder.</p>
+          </article>
+          <article class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/></svg></div>
+            <h3>Leave and OOO</h3>
+            <p>Automatic leave detection, manual overrides, and out-of-office time assigned to individual days.</p>
+          </article>
+          <article class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></div>
+            <h3>Optional notifications</h3>
+            <p>Get an alert when you reach your daily target or your daily cap, including that day's OOO.</p>
+          </article>
+          <article class="card">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+            <h3>Your rules</h3>
+            <p>Configure your daily target, daily cap, workdays and entry/exit limits. Turkish and English interfaces.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="block" aria-labelledby="how">
+        <h2 id="how">How it works</h2>
+        <p class="sub">Set it up once, then refresh whenever you want fresh numbers.</p>
+        <ol class="steps">
+          <li><strong>Save your portal address</strong><span>Open the extension, go to Settings, and enter your organization's ARGEPORTAL address.</span></li>
+          <li><strong>Press Refresh</strong><span>If ARGEPORTAL isn't open, the extension opens it in a new tab. Sign in if the portal asks you to.</span></li>
+          <li><strong>See your summary</strong><span>On the portal tab, the extension reads your PDKS records and calculates your totals. They stay available even after you close the portal.</span></li>
+        </ol>
+      </section>
+
+      <section class="block">
+        <div class="callout">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <div>
+            <h2>Your data stays in your browser</h2>
+            <p>
+              Attendance records are read only when you refresh, and are stored only in your
+              browser's extension storage. There is no backend, no analytics, and nothing is sold.
+              <a href="privacy.html">Read the privacy policy</a>.
+            </p>
+          </div>
+        </div>
+      </section>
+    </div>
   </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <span>PDKS Time Calculator · MIT licensed on <a href="https://github.com/mrokumus/argeportal-hour-calculator">GitHub</a></span>
+      <span><a href="changelog.html">Changelog</a> · <a href="privacy.html">Privacy</a> · <a href="https://github.com/mrokumus/argeportal-hour-calculator/issues">Report an issue</a></span>
+    </div>
+  </footer>
 </body>
 </html>
