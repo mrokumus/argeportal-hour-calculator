@@ -720,7 +720,7 @@ export function App() {
   }
 
   return (
-    <div className={`${styles.app} ${styles.dashboardApp}`}>
+    <div className={styles.app}>
       {dashboardHeader}
 
       {stale && <Warning text={t('staleWarning')} />}

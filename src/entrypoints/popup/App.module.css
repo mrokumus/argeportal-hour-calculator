@@ -1307,22 +1307,3 @@
 .dayToday small {
   color: var(--surface);
 }
-
-.dashboardApp {
-  display: flex;
-  flex-direction: column;
-  height: 600px;
-  max-height: 600px;
-  overflow: hidden;
-}
-
-.dashboardApp > * {
-  flex-shrink: 0;
-}
-
-.dashboardApp .dashboardMain {
-  flex: 1 1 auto;
-  min-height: 0;
-  align-content: start;
-  overflow-y: auto;
-}
