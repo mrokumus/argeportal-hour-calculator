@@ -5,15 +5,6 @@ export default defineConfig({
   srcDir: 'src',
   outDir: '.output',
   modules: ['@wxt-dev/module-react'],
-  hooks: {
-    'build:manifestGenerated': (wxt, manifest) => {
-      if (wxt.config.command === 'serve') return;
-      // The parser is injected only after an activeTab gesture; it does not need
-      // WXT's automatic all-sites grant for runtime content-script registration.
-      manifest.host_permissions = manifest.host_permissions?.filter((host: string) => host !== '<all_urls>');
-      manifest.permissions = manifest.permissions?.filter(permission => permission !== '<all_urls>');
-    },
-  },
   manifest: ({ browser }) => ({
     name: 'PDKS Time Calculator',
     version,
