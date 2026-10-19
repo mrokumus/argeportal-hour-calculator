@@ -19,6 +19,8 @@ import { calculateRemaining, calculateTime, getMondayOfWeek, roundCheckInUp } fr
 import { setLocale, t, formatDateRange } from '../../lib/i18n';
 import { DEFAULT_SETTINGS, REFRESH_INTERVAL_MS } from '../../config';
 import { Warning } from '../../components/Warning/Warning';
+import { DailyOooEditor } from '../../components/DailyOooEditor/DailyOooEditor';
+import { getDailyOoo, getDailyCap, getWeekOoo } from '../../lib/ooo';
 import { LeaveInputs } from '../../components/LeaveInputs/LeaveInputs';
 import { Footer } from '../../components/Footer/Footer';
 import styles from './App.module.css';
@@ -87,6 +89,7 @@ export function App() {
   const [leaveData, setLeaveData] = useState<LeaveData | null>(null);
   const [previousLeave, setPreviousLeave] = useState<{ key: string; data: LeaveData } | null>(null);
   const [leaveWeekKey, setLeaveWeekKey] = useState<string | null>(null);
+  const [oooDate, setOooDate] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [portalStatus, setPortalStatus] = useState<'ok' | 'not-found' | null>(null);
   const [now, setNow] = useState(Date.now());
@@ -571,7 +574,7 @@ export function App() {
   const isCurrentWeek = true;
   const today = dayjs(effectiveNow);
   const dailyTargetMin = settings.dailyTargetMinutes;
-  const dailyCapMin = settings.dailyCapMinutes;
+  const dailyCapMin = getDailyCap(settings.dailyCapMinutes, data.leaveData, today.format('YYYY-MM-DD'));
 
   // ---- today ring ----
   const todayMin = todayH * 60 + todayM;
@@ -617,10 +620,15 @@ export function App() {
       const offset = definition.day === 0 ? 6 : definition.day - 1;
       const date = dayjs(getMondayOfWeek(0)).add(offset, 'day');
       const isToday = date.isSame(today, 'day');
-      const rawMinutes = isToday ? cappedTodayMin : dailyTotals[date.format('YYYY-MM-DD')] || 0;
+      const dateKey = date.format('YYYY-MM-DD');
+      const rawMinutes = isToday ? cappedTodayMin : dailyTotals[dateKey] || 0;
+      const ooo = getDailyOoo(data.leaveData, dateKey);
       return {
         label: t(definition.label),
-        minutes: Math.min(rawMinutes, dailyCapMin),
+        date: dateKey,
+        ooo,
+        editable: date.isSame(today, 'month'),
+        minutes: Math.min(rawMinutes, getDailyCap(settings.dailyCapMinutes, data.leaveData, dateKey)),
         isPast: date.isBefore(today, 'day'),
         isToday,
         isLeave: date.isBefore(today, 'day')
@@ -652,7 +660,8 @@ export function App() {
   const plannerTargetMinutes = planningForWeekCompletion
     ? Math.max(0, weeklyRemainingMinutes - expectedAdditionalToday)
     : Math.round(plannerDailyTarget * 60);
-  const plannerCanFit = plannerTargetMinutes <= dailyCapMin
+  const plannerCapMin = getDailyCap(settings.dailyCapMinutes, data.leaveData, plannedDate.format('YYYY-MM-DD'));
+  const plannerCanFit = plannerTargetMinutes <= plannerCapMin
     && timeToMinutes(settings.earliestEntry) + plannerTargetMinutes <= timeToMinutes(settings.latestExit);
   const boundedDesiredExit = clampDesiredExit(desiredExit, plannerTargetMinutes, settings);
   const [desiredHour, desiredMinute] = boundedDesiredExit.split(':').map(Number);
@@ -696,7 +705,7 @@ export function App() {
   }
 
   const weeklyState = getWeeklyStatus(today, weeklyRemainingMinutesExact, todayWorkedMinutes,
-    hasStartedToday && snapshot.todayHasOpenSession !== false, settings);
+    hasStartedToday && snapshot.todayHasOpenSession !== false, { ...settings, dailyCapMinutes: dailyCapMin });
   const weeklyCompletionTime = weeklyState.kind === 'finish' ? weeklyState.time : null;
   let weeklyStatus: string | null = null;
   switch (weeklyState.kind) {
@@ -752,15 +761,24 @@ export function App() {
           </div>
           <div className={styles.daysGrid} style={{ gridTemplateColumns: `repeat(${weekDays.length}, 1fr)` }}>
             {weekDays.map((day) => (
-              <div
+              <button type="button"
                 className={`${styles.dayCard} ${day.isPast ? styles.dayPast : ''} ${day.isToday ? styles.dayToday : ''} ${day.isLeave ? styles.dayLeave : ''}`}
-                key={day.label}
+                key={day.date}
+                disabled={refreshing || !day.editable}
+                aria-label={t('editOooForDay', { date: day.date })}
+                aria-pressed={oooDate === day.date}
+                onClick={() => setOooDate(oooDate === day.date ? null : day.date)}
               >
                 {day.label}
                 <b>{day.isLeave ? t('leaveBarLabel') : `${Math.floor(day.minutes / 60)}:${pad(day.minutes % 60)}`}</b>
-              </div>
+                {day.ooo > 0 && <small>OOO {minutesToTime(day.ooo)}</small>}
+              </button>
             ))}
           </div>
+          {oooDate && (oooDate === today.format('YYYY-MM-DD') || weekDays.some(day => day.date === oooDate && day.editable)) && (
+            <DailyOooEditor key={oooDate} date={oooDate} data={data.leaveData} baseCap={settings.dailyCapMinutes}
+              disabled={refreshing} onChange={handleLeaveChange} onClose={() => setOooDate(null)} />
+          )}
           {isCurrentWeek && weeklyStatus && (
             <div className={`${styles.statusTag} ${styles.todayStatus}`}>
               {weeklyCompletionTime ? (
@@ -812,7 +830,7 @@ export function App() {
             ) : (
               <div className={styles.mutedText}>
                 {t('dailyTargetExceedsCap', {
-                  h: formatDuration(Math.floor(dailyCapMin / 60), dailyCapMin % 60),
+                  h: formatDuration(Math.floor(plannerCapMin / 60), plannerCapMin % 60),
                 })}
               </div>
             )}
@@ -847,7 +865,9 @@ export function App() {
         })} />;
       })}
 
-      <LeaveInputs key={weekKey} maxLeaveDays={validWorkdays} data={data.leaveData} disabled={refreshing} onLeaveChange={handleLeaveChange} />
+      <LeaveInputs key={weekKey} maxLeaveDays={validWorkdays} data={data.leaveData} disabled={refreshing} onLeaveChange={handleLeaveChange}
+        oooTotal={getWeekOoo(data.leaveData, dayjs(getMondayOfWeek(0, today.toDate())), dayjs(getMondayOfWeek(0, today.toDate())).add(6, 'day'), today)}
+        onEditOoo={() => setOooDate(today.format('YYYY-MM-DD'))} />
       {devBar}
       <Footer />
     </div>
