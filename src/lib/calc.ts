@@ -196,3 +196,19 @@ export function getWeeklyStatus(
   if (!hasOpenSession) return { kind: 'remaining' };
   return { kind: 'finish', time: completion.format('HH:mm') };
 }
+
+/** Previous calendar week, crediting only days in the current month. */
+export function getPreviousWeekSummary(snapshot: Snapshot, now: Dayjs, mode: CalcMode, settings: AppSettings) {
+  const start = dayjs(getMondayOfWeek(-1, now.toDate()));
+  const end = start.add(6, 'day');
+  const captured = dayjs(snapshot.capturedDay);
+  const complete = captured.isSame(now, 'month') && captured.isAfter(end, 'day');
+  const totals = mode === 'span' ? snapshot.dailyTotalsSpan : snapshot.dailyTotalsSessions;
+  let minutes = 0;
+  for (let date = start; !date.isAfter(end, 'day'); date = date.add(1, 'day')) {
+    if (!date.isSame(now, 'month')) continue;
+    const worked = totals[date.format('YYYY-MM-DD')] ?? 0;
+    if (worked >= settings.shortDayThresholdMinutes) minutes += Math.min(worked, settings.dailyCapMinutes);
+  }
+  return { minutes, complete, start: start.format('YYYY-MM-DD'), end: end.format('YYYY-MM-DD') };
+}

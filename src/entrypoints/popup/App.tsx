@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
 import type { AppSettings, CalcMode, LeaveData, Snapshot } from '../../types';
-import { computeWeekData, getWeeklyStatus } from '../../lib/calc';
+import { computeWeekData, getWeeklyStatus, getPreviousWeekSummary } from '../../lib/calc';
 import {
   getCalcMode,
   getLeaveData,
@@ -578,6 +578,7 @@ export function App() {
   const weekDone = weekRemH === 0 && weekRemM === 0;
   const weekTimeText = `${wth}:${pad(wtm)}`;
   const weekTargetText = minutesToTime(Math.round(weekTargetH * 60));
+  const previousWeek = getPreviousWeekSummary(snapshot, today, calcMode, settings);
   const dailyTotals = calcMode === 'span' ? snapshot.dailyTotalsSpan : snapshot.dailyTotalsSessions;
   const weekDayDefinitions = [
     { day: 1, label: 'mondayShort' as const },
@@ -807,6 +808,10 @@ export function App() {
 
         <div className={styles.dashboardFoot}>
           <span>{t('monthlyTotal')} <b>{formatDuration(monthlyH, monthlyM)}</b></span>
+          <span className={styles.previousWeekSummary} title={`${previousWeek.start} – ${previousWeek.end}`}>
+            {t('lastWeek')} <b>{previousWeek.complete ? minutesToTime(previousWeek.minutes) : '—'}</b>
+            {!previousWeek.complete && <small>{t('previousWeekUnavailable')}</small>}
+          </span>
         </div>
       </main>
 

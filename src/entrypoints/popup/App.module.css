@@ -1148,6 +1148,11 @@
 }
 
 .dashboardFoot {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
   padding: 0 3px;
   color: var(--muted);
   font-size: 12px;
@@ -1268,4 +1273,13 @@
   padding: 11px 13px;
   border-top: 1px solid var(--border);
   background: var(--surface);
+}
+
+.previousWeekSummary {
+  margin-left: auto;
+  text-align: right;
+}
+
+.previousWeekSummary small {
+  display: block;
 }
