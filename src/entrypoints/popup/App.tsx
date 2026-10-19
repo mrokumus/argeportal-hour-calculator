@@ -775,7 +775,7 @@ export function App() {
               </button>
             ))}
           </div>
-          {oooDate && weekDays.some(day => day.date === oooDate && day.editable) && (
+          {oooDate && (oooDate === today.format('YYYY-MM-DD') || weekDays.some(day => day.date === oooDate && day.editable)) && (
             <DailyOooEditor key={oooDate} date={oooDate} data={data.leaveData} baseCap={settings.dailyCapMinutes}
               disabled={refreshing} onChange={handleLeaveChange} onClose={() => setOooDate(null)} />
           )}
@@ -867,7 +867,7 @@ export function App() {
 
       <LeaveInputs key={weekKey} maxLeaveDays={validWorkdays} data={data.leaveData} disabled={refreshing} onLeaveChange={handleLeaveChange}
         oooTotal={getWeekOoo(data.leaveData, dayjs(getMondayOfWeek(0, today.toDate())), dayjs(getMondayOfWeek(0, today.toDate())).add(6, 'day'), today)}
-        onEditOoo={() => setOooDate(weekDays.find(day => day.isToday && day.editable)?.date ?? weekDays.find(day => day.editable)?.date ?? null)} />
+        onEditOoo={() => setOooDate(today.format('YYYY-MM-DD'))} />
       {devBar}
       <Footer />
     </div>
