@@ -232,6 +232,7 @@ export async function parseSnapshot(): Promise<ParseResult> {
       firstRecordISO: scrapeFirstRecord(punchRows, now),
       lastRecordISO: scrapeLastRecord(punchRows, now),
       todayHasOpenSession: hasOpenSession(punchRows, now),
+      todayCompletedSessionMinutes: rawSessions[now.format('YYYY-MM-DD')] ?? 0,
       dailyTotalsSessions: mergeSessionTotals(summarySessions, rawSessions),
       dailyTotalsSpan: scrapeSpan(punchRows, monthStart, monthEnd),
     };

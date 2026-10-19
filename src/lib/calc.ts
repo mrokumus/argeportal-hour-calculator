@@ -6,6 +6,7 @@ import {
   calculateTime,
   calculateRemaining,
   capDailyHours,
+  clampLeaveDays,
 } from './time-utils';
 import { DAILY_TARGET_HOURS, SHORT_DAY_THRESHOLD_HOURS, DAILY_CAP_HOURS } from '../config';
 
@@ -70,6 +71,12 @@ export function computeWeekData(
     }
   }
 
+  const boundedLeave = clampLeaveDays(leaveData.leave, validWorkdays);
+  if (boundedLeave !== leaveData.leave) {
+    leaveData.leave = boundedLeave;
+    leaveDataChanged = true;
+  }
+
   const weekTargetH =
     validWorkdays * targetHours -
     leaveData.leave * targetHours +
@@ -86,14 +93,20 @@ export function computeWeekData(
 
   let todayH = 0;
   let todayM = 0;
-  let todayRemainingH = dailyTargetH;
-  let todayRemainingM = 0;
+  let [todayRemainingH, todayRemainingM] = calculateTime(dailyTargetH);
 
   if (firstRecord) {
     const recordedTodayMins = dailyTotals[today.format('YYYY-MM-DD')];
-    const workedHours = snapshot.todayHasOpenSession === false && recordedTodayMins != null
+    let workedHours = snapshot.todayHasOpenSession === false && recordedTodayMins != null
       ? recordedTodayMins / 60
       : today.diff(firstRecord, 'hour', true);
+    if (calcMode === 'sessions' && snapshot.todayHasOpenSession !== false && snapshot.lastRecordISO) {
+      const openStart = dayjs(snapshot.lastRecordISO);
+      if (openStart.isValid() && openStart.isSame(today, 'day')) {
+        const completed = snapshot.todayCompletedSessionMinutes ?? recordedTodayMins ?? 0;
+        workedHours = completed / 60 + Math.max(0, today.diff(openStart, 'hour', true));
+      }
+    }
     [todayH, todayM] = calculateTime(workedHours);
     [todayRemainingH, todayRemainingM] = calculateRemaining(workedHours, false, dailyTargetH);
   }
@@ -118,6 +131,12 @@ export function computeWeekData(
     weekTotalMin += wh * 60 + wm;
   });
 
+  const todayKey = today.format('YYYY-MM-DD');
+  const monthlyTotalMin = Object.entries(dailyTotals)
+    .filter(([date]) => dayjs(date).isSame(today, 'month'))
+    .reduce((sum, [date, minutes]) => sum + (firstRecord && date === todayKey ? 0 : minutes), 0)
+    + (firstRecord ? todayH * 60 + todayM : 0);
+
   const weekTotalWithTodayMin = weekTotalMin + Math.min(todayH * 60 + todayM, capHours * 60);
   const weeklyRemainingMinutes = Math.max(0, Math.round(weekTargetH * 60) - weekTotalWithTodayMin);
 
@@ -125,6 +144,8 @@ export function computeWeekData(
     data: {
       leaveData,
       weekTargetH,
+      validWorkdays,
+      monthlyTotalMin,
       todayH,
       todayM,
       todayRemainingH,

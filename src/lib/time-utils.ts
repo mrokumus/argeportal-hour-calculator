@@ -131,3 +131,8 @@ export function countValidWorkdays(
   }
   return count;
 }
+
+/** Bound manually entered or stored leave to the workdays available this week. */
+export function clampLeaveDays(value: number, validWorkdays: number): number {
+  return Math.min(validWorkdays, Math.max(0, Number.isFinite(value) ? Math.floor(value) : 0));
+}
