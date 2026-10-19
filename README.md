@@ -46,7 +46,7 @@ A Chrome and Firefox extension that reads ARGEPORTAL PDKS records and displays a
 ### Leave and OOO
 
 - **Leave:** Previous weekdays below the configured work threshold are detected automatically. A manual edit disables automatic detection for the current week.
-- **OOO:** Time worked outside the office is assigned to a specific day by selecting that day, entered as `H:MM` (for example `1:30`), and adjusted in 15-minute steps with the arrow keys. It is included in the weekly target and raises that day's daily cap.
+- **OOO (out of office):** Time that PDKS shows as worked while you were actually away and not working. Assign it to a specific day by selecting that day, enter it as `H:MM` (for example `1:30`), and adjust it in 15-minute steps with the arrow keys. It is added to the weekly target and raises that day's daily cap.
 
 ### Notifications
 
@@ -124,7 +124,7 @@ package.json: 1.7.0
 release tag:  v1.7.0
 ```
 
-Record user-facing changes in [`CHANGELOG.md`](CHANGELOG.md) before each release; its entry can be used as the GitHub Release notes.
+Record user-facing changes in [`CHANGELOG.md`](CHANGELOG.md) before each release; its entry can be used as the GitHub Release notes. Add the same entry in Turkish to [`CHANGELOG.tr.md`](CHANGELOG.tr.md). The project site's changelog pages read both files from `main`; the Turkish page falls back to English if the Turkish file can't be loaded.
 
 Publishing a GitHub Release runs `.github/workflows/release.yml`, attaches Chrome/Firefox artifacts to the release, and submits both existing store listings for review. The workflow can also retry only Chrome or only Firefox through `workflow_dispatch`.
 
