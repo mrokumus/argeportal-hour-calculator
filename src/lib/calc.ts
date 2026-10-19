@@ -198,7 +198,7 @@ export function getWeeklyStatus(
 }
 
 /** Previous calendar week, crediting only days in the current month. */
-export function getPreviousWeekSummary(snapshot: Snapshot, now: Dayjs, mode: CalcMode, settings: AppSettings) {
+export function getPreviousWeekSummary(snapshot: Snapshot, now: Dayjs, mode: CalcMode, settings: AppSettings, leaveData?: LeaveData) {
   const start = dayjs(getMondayOfWeek(-1, now.toDate()));
   const end = start.add(6, 'day');
   const captured = dayjs(snapshot.capturedDay);
@@ -210,5 +210,19 @@ export function getPreviousWeekSummary(snapshot: Snapshot, now: Dayjs, mode: Cal
     const worked = totals[date.format('YYYY-MM-DD')] ?? 0;
     if (worked >= settings.shortDayThresholdMinutes) minutes += Math.min(worked, settings.dailyCapMinutes);
   }
-  return { minutes, complete, start: start.format('YYYY-MM-DD'), end: end.format('YYYY-MM-DD') };
+  const periodStart = start.isBefore(now.startOf('month')) ? now.startOf('month') : start;
+  const periodEnd = end.isAfter(now.endOf('month')) ? now.endOf('month') : end;
+  let workdays = 0;
+  for (let date = periodStart; !date.isAfter(periodEnd, 'day'); date = date.add(1, 'day')) {
+    if (settings.workdays.includes(date.day())) workdays++;
+  }
+  const targetMinutes = leaveData
+    ? Math.round(computeWeekData(snapshot, -1, mode, leaveData, now, settings.dailyTargetMinutes / 60, settings).data.weekTargetH * 60)
+    : null;
+  return {
+    minutes, complete, start: start.format('YYYY-MM-DD'), end: end.format('YYYY-MM-DD'),
+    visible: workdays > 0,
+    periodStart: periodStart.format('YYYY-MM-DD'), periodEnd: periodEnd.format('YYYY-MM-DD'),
+    targetMet: complete && workdays > 0 && targetMinutes !== null && minutes >= targetMinutes,
+  };
 }

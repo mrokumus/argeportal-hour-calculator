@@ -12,7 +12,7 @@ const snapshot: Snapshot = {
 
 it('sums the previous Monday–Sunday using daily caps and short-day rules', () => {
   const result = getPreviousWeekSummary(snapshot, dayjs('2026-10-19'), 'sessions', settings);
-  expect(result).toEqual({ minutes: 1800, complete: true, start: '2026-10-12', end: '2026-10-18' });
+  expect(result).toMatchObject({ minutes: 1800, complete: true, start: '2026-10-12', end: '2026-10-18' });
 });
 it('uses the selected calculation mode', () => {
   expect(getPreviousWeekSummary(snapshot, dayjs('2026-10-19'), 'span', settings).minutes).toBe(2320);
@@ -67,4 +67,34 @@ it('shows a genuinely empty covered week as zero', () => {
   const result = getPreviousWeekSummary({ ...snapshot, dailyTotalsSessions: {} }, dayjs('2026-10-19'), 'sessions', settings);
   expect(result.complete).toBe(true);
   expect(result.minutes).toBe(0);
+});
+
+
+it('hides the previous week when no workday falls within this month', () => {
+  expect(getPreviousWeekSummary({ ...snapshot, capturedDay: '2026-06-01' }, dayjs('2026-06-01'), 'sessions', settings).visible).toBe(false);
+});
+it('shows the clipped current-month range and a checkmark when its target is met', () => {
+  const result = getPreviousWeekSummary({ ...snapshot, capturedDay: '2026-07-06',
+    dailyTotalsSessions: { '2026-07-01': 540, '2026-07-02': 540, '2026-07-03': 540 },
+  }, dayjs('2026-07-06'), 'sessions', settings, { leave: 0, ooo: 0, autoDetected: false });
+  expect(result).toMatchObject({ visible: true, periodStart: '2026-07-01', periodEnd: '2026-07-05', minutes: 1620, targetMet: true });
+});
+it('does not mark missing work as completed when manual leave is zero', () => {
+  expect(getPreviousWeekSummary(snapshot, dayjs('2026-10-19'), 'sessions', settings,
+    { leave: 0, ooo: 0, autoDetected: false }).targetMet).toBe(false);
+});
+it('uses the previous week leave and OOO when deciding completion', () => {
+  const data = { ...snapshot, dailyTotalsSessions: { '2026-10-12': 660, '2026-10-13': 540, '2026-10-14': 540, '2026-10-15': 540 } };
+  expect(getPreviousWeekSummary(data, dayjs('2026-10-19'), 'sessions', settings,
+    { leave: 1, ooo: 120, autoDetected: false }).targetMet).toBe(true);
+  expect(getPreviousWeekSummary(data, dayjs('2026-10-19'), 'sessions', settings,
+    { leave: 1, ooo: 121, autoDetected: false }).targetMet).toBe(false);
+});
+it('does not show a completion checkmark before coverage and leave are known', () => {
+  expect(getPreviousWeekSummary(snapshot, dayjs('2026-10-19'), 'sessions', settings).targetMet).toBe(false);
+  expect(getPreviousWeekSummary({ ...snapshot, capturedDay: '2026-10-14' }, dayjs('2026-10-19'), 'sessions', settings,
+    { leave: 5, ooo: 0, autoDetected: false }).targetMet).toBe(false);
+});
+it('keeps a real zero visible if the current month includes workdays', () => {
+  expect(getPreviousWeekSummary({ ...snapshot, dailyTotalsSessions: {} }, dayjs('2026-10-19'), 'sessions', settings).visible).toBe(true);
 });

@@ -16,7 +16,7 @@ import {
 } from '../../lib/storage';
 import { requestParse } from '../../lib/refresh';
 import { calculateRemaining, calculateTime, getMondayOfWeek, roundCheckInUp } from '../../lib/time-utils';
-import { setLocale, t } from '../../lib/i18n';
+import { setLocale, t, formatDateRange } from '../../lib/i18n';
 import { DEFAULT_SETTINGS, REFRESH_INTERVAL_MS } from '../../config';
 import { Warning } from '../../components/Warning/Warning';
 import { LeaveInputs } from '../../components/LeaveInputs/LeaveInputs';
@@ -85,6 +85,7 @@ export function App() {
   const [desiredExit, setDesiredExit] = useState<string>(DEFAULT_SETTINGS.earliestExit);
   const [desiredExitDraft, setDesiredExitDraft] = useState<string>(DEFAULT_SETTINGS.earliestExit);
   const [leaveData, setLeaveData] = useState<LeaveData | null>(null);
+  const [previousLeave, setPreviousLeave] = useState<{ key: string; data: LeaveData } | null>(null);
   const [leaveWeekKey, setLeaveWeekKey] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [portalStatus, setPortalStatus] = useState<'ok' | 'not-found' | null>(null);
@@ -102,6 +103,7 @@ export function App() {
 
   const effectiveNow = devNow ?? now;
   const weekKey = getWeekKey(0);
+  const previousWeekKey = getWeekKey(-1);
 
   async function refresh(openPortalOnFailure = false) {
     setRefreshing(true);
@@ -164,6 +166,16 @@ export function App() {
       active = false;
     };
   }, [booted, weekKey]);
+
+  useEffect(() => {
+    let active = true;
+    if (booted && !devActive) {
+      getLeaveData(previousWeekKey).then(data => {
+        if (active) setPreviousLeave({ key: previousWeekKey, data });
+      });
+    }
+    return () => { active = false; };
+  }, [booted, previousWeekKey, devActive]);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), REFRESH_INTERVAL_MS);
@@ -578,7 +590,8 @@ export function App() {
   const weekDone = weekRemH === 0 && weekRemM === 0;
   const weekTimeText = `${wth}:${pad(wtm)}`;
   const weekTargetText = minutesToTime(Math.round(weekTargetH * 60));
-  const previousWeek = getPreviousWeekSummary(snapshot, today, calcMode, settings);
+  const previousWeek = getPreviousWeekSummary(snapshot, today, calcMode, settings,
+    previousLeave?.key === previousWeekKey && !devActive ? previousLeave.data : undefined);
   const dailyTotals = calcMode === 'span' ? snapshot.dailyTotalsSpan : snapshot.dailyTotalsSessions;
   const weekDayDefinitions = [
     { day: 1, label: 'mondayShort' as const },
@@ -808,10 +821,14 @@ export function App() {
 
         <div className={styles.dashboardFoot}>
           <span>{t('monthlyTotal')} <b>{formatDuration(monthlyH, monthlyM)}</b></span>
-          <span className={styles.previousWeekSummary} title={`${previousWeek.start} – ${previousWeek.end}`}>
-            {t('lastWeek')} <b>{previousWeek.complete ? minutesToTime(previousWeek.minutes) : '—'}</b>
-            {!previousWeek.complete && <small>{t('previousWeekUnavailable')}</small>}
-          </span>
+          {previousWeek.visible && (
+            <span className={styles.previousWeekSummary}>
+              {t('lastWeek')} <b>{previousWeek.complete ? minutesToTime(previousWeek.minutes) : '—'}</b>
+              {previousWeek.targetMet && <span className={styles.previousWeekComplete} role="img" aria-label={t('weekCompleted')}> ✓</span>}
+              <small>{formatDateRange(previousWeek.periodStart, previousWeek.periodEnd)}</small>
+              {!previousWeek.complete && <small>{t('previousWeekUnavailable')}</small>}
+            </span>
+          )}
         </div>
       </main>
 
