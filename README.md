@@ -124,7 +124,7 @@ package.json: 1.7.0
 release tag:  v1.7.0
 ```
 
-Record user-facing changes in [`CHANGELOG.md`](CHANGELOG.md) before each release; its entry can be used as the GitHub Release notes.
+Record user-facing changes in [`CHANGELOG.md`](CHANGELOG.md) before each release; its entry can be used as the GitHub Release notes. Add the same entry in Turkish to [`CHANGELOG.tr.md`](CHANGELOG.tr.md). The project site's changelog pages read both files from `main`; the Turkish page falls back to English if the Turkish file can't be loaded.
 
 Publishing a GitHub Release runs `.github/workflows/release.yml`, attaches Chrome/Firefox artifacts to the release, and submits both existing store listings for review. The workflow can also retry only Chrome or only Firefox through `workflow_dispatch`.
 

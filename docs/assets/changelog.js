@@ -1,17 +1,20 @@
-// Renders CHANGELOG.md from main so the site never drifts from the repository.
+// Renders CHANGELOG.md (or CHANGELOG.tr.md) from main so the site never drifts from the repository.
 // The container's data-lang ("en" or "tr") picks the page chrome language.
 (function () {
   var REPO = 'https://github.com/mrokumus/argeportal-hour-calculator';
-  var SOURCE = 'https://raw.githubusercontent.com/mrokumus/argeportal-hour-calculator/main/CHANGELOG.md';
+  var RAW = 'https://raw.githubusercontent.com/mrokumus/argeportal-hour-calculator/main/';
   var STRINGS = {
     en: {
       locale: 'en-GB',
+      sources: ['CHANGELOG.md'],
       latest: 'Latest',
       sections: {},
       failed: 'The changelog could not be loaded. See <a href="' + REPO + '/blob/main/CHANGELOG.md">CHANGELOG.md on GitHub</a> or the <a href="' + REPO + '/releases">Releases page</a>.',
     },
     tr: {
       locale: 'tr-TR',
+      // The Turkish file is optional; fall back to English if it is missing.
+      sources: ['CHANGELOG.tr.md', 'CHANGELOG.md'],
       latest: 'En yeni',
       sections: { Added: 'Eklenenler', Fixed: 'Düzeltmeler', Changed: 'Değişiklikler', Removed: 'Kaldırılanlar' },
       failed: 'Sürüm notları yüklenemedi. <a href="' + REPO + '/blob/main/CHANGELOG.md">GitHub\'daki CHANGELOG.md</a> dosyasına veya <a href="' + REPO + '/releases">Releases sayfasına</a> bakabilirsiniz.',
@@ -83,11 +86,19 @@
     return html;
   }
 
-  fetch(SOURCE, { cache: 'no-cache' })
-    .then(function (response) {
-      if (!response.ok) throw new Error(response.status);
-      return response.text();
-    })
+  function load(sources) {
+    return fetch(RAW + sources[0], { cache: 'no-cache' })
+      .then(function (response) {
+        if (!response.ok) throw new Error(response.status);
+        return response.text();
+      })
+      .catch(function (error) {
+        if (sources.length > 1) return load(sources.slice(1));
+        throw error;
+      });
+  }
+
+  load(text.sources)
     .then(function (markdown) {
       root.innerHTML = render(markdown);
       if (location.hash) {
