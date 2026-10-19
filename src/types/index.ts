@@ -69,7 +69,7 @@ export interface WeekData {
   weekTotalMin: number;
   weeklyExitStr: string | null;
   shortDays: Array<{ date: string; mins: number }>;
-  // exit time override on Friday
+  // exit time on the configured final workday
   exitRemainingH: number;
   exitRemainingM: number;
 }

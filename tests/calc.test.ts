@@ -1,4 +1,5 @@
 import dayjs from 'dayjs';
+import { DEFAULT_SETTINGS } from '../src/config';
 import { computeWeekData } from '../src/lib/calc';
 import type { Snapshot } from '../src/types';
 
@@ -161,5 +162,26 @@ describe('computeWeekData', () => {
     expect(fridayExit - remaining(atFive)).toBe(7 * 60);
     expect(remaining(atFiveOhOne)).toBe(7 * 60 + 59);
     expect(fridayExit - remaining(atFiveOhOne)).toBe(7 * 60 + 1);
+  });
+});
+
+
+describe('configured last workday exit', () => {
+  it.each([
+    ['2026-08-06', [1, 2, 3, 4], 1],
+    ['2026-08-07', [1, 2, 3, 4, 5, 6], 4],
+  ])('keeps daily and weekly remainders separate on %s', (date, workdays, expectedHours) => {
+    const now = dayjs(`${date}T14:00:00`);
+    const totals = { '2026-08-03': 600, '2026-08-04': 600, '2026-08-05': 600 };
+    const snapshot: Snapshot = {
+      capturedAt: now.toISOString(), capturedDay: date,
+      firstRecordISO: dayjs(`${date}T09:00:00`).toISOString(),
+      dailyTotalsSessions: totals, dailyTotalsSpan: totals,
+    };
+    const result = computeWeekData(snapshot, 0, 'sessions',
+      { leave: 0, ooo: 0, autoDetected: false }, now, 9,
+      { ...DEFAULT_SETTINGS, workdays });
+    expect(result.data.todayRemainingH).toBe(4);
+    expect(result.data.exitRemainingH).toBe(expectedHours);
   });
 });

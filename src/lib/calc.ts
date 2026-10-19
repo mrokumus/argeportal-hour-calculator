@@ -140,8 +140,10 @@ export function computeWeekData(
       }
     }
 
-    // On Friday, the exit time is driven by the weekly target (not daily 9h)
-    if (today.day() === 5 && rwth < dailyTargetH) {
+    // The configured final workday uses the remaining weekly target.
+    const offsets = (settings?.workdays ?? [1, 2, 3, 4, 5]).map(day => day === 0 ? 6 : day - 1);
+    const todayOffset = today.day() === 0 ? 6 : today.day() - 1;
+    if (todayOffset === Math.max(...offsets)) {
       exitRemainingH = rwth;
       exitRemainingM = rwtm;
       weeklyExitStr = null;
