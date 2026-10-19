@@ -63,6 +63,10 @@ export interface WeekData {
   weekTargetH: number;
   validWorkdays: number;
   monthlyTotalMin: number;
+  // Exact values preserve seconds for completion estimates.
+  todayWorkedMinutes: number;
+  todayRemainingMinutesExact: number;
+  weeklyRemainingMinutesExact: number;
   // today
   todayH: number;
   todayM: number;
