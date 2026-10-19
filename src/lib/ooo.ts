@@ -43,3 +43,11 @@ export function getWeekOoo(data: LeaveData, start: Dayjs, end: Dayjs, month: Day
 export function getDailyCap(baseMinutes: number, data: LeaveData, date: string): number {
   return baseMinutes + getDailyOoo(data, date);
 }
+
+/** Accept whole hours or H:MM while rejecting malformed and overlong durations. */
+export function parseDailyOoo(value: string): number | null {
+  const match = /^(\d{1,2})(?::([0-5]\d))?$/.exec(value.trim());
+  if (!match) return null;
+  const minutes = Number(match[1]) * 60 + Number(match[2] ?? 0);
+  return minutes <= 1440 ? minutes : null;
+}
