@@ -23,7 +23,7 @@
   "leaveDays": "d",
   "leaveBarLabel": "Leave",
   "oooLabel": "🏠 OOO",
-  "oooTooltip": "<strong>Out of Office</strong> — time spent outside the office.<br>Not reflected in PDKS, <strong>added</strong> to 45h target.<br>Format: <code style=\"background:#444;padding:1px 4px;border-radius:3px;\">HH:MM</code> (e.g. 1:30)",
+  "oooTooltip": "OOO adds to the weekly target and increases only that day’s limit. Select a weekday card to edit.",
   "checking": "Checking…",
   "releases": "Releases ↗",
   "upToDate": "✅ Up to date",
@@ -144,6 +144,14 @@
   "lastWeek": "Last week",
   "previousWeekUnavailable": "Data unavailable",
   "weekIncomplete": "Weekly target incomplete",
+  "editDailyOoo": "By day",
+  "editOooForDay": "Edit OOO for {date}",
+  "dailyOooLimit": "Daily limit with OOO: {h} (hours:minutes)",
+  "invalidDailyOoo": "Enter a duration from 0:00 to 24:00.",
+  "unassignedOoo": "Previous OOO without a date: {h}",
+  "assignOooHere": "Assign to this day",
+  "clearUnassignedOoo": "Remove undated OOO",
+  "close": "Close",
   "collapse": "Collapse",
   "expand": "Expand"
 }

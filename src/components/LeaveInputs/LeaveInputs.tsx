@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { LeaveData } from '../../types';
-import { formatOOO, parseOOO, clampLeaveDays } from '../../lib/time-utils';
+import { formatOOO, clampLeaveDays } from '../../lib/time-utils';
 import { t } from '../../lib/i18n';
 import styles from './LeaveInputs.module.css';
 
@@ -9,124 +9,33 @@ interface Props {
   disabled: boolean;
   maxLeaveDays: number;
   onLeaveChange: (data: LeaveData) => void;
+  onEditOoo: () => void;
+  oooTotal: number;
 }
 
-export function LeaveInputs({ data, disabled, maxLeaveDays, onLeaveChange }: Props) {
+export function LeaveInputs({ data, disabled, maxLeaveDays, onLeaveChange, onEditOoo, oooTotal }: Props) {
   const leaveRef = useRef<HTMLInputElement>(null);
-  const oooRef = useRef<HTMLInputElement>(null);
-
-  // The inputs are uncontrolled (so partial OOO typing like "1:" isn't fought).
-  // Sync them when the data changes externally — a new week, a loaded scenario,
-  // or auto-detected leave — but never while the field is focused.
   useEffect(() => {
-    if (leaveRef.current && document.activeElement !== leaveRef.current) {
-      leaveRef.current.value = String(data.leave);
-    }
-    if (oooRef.current && document.activeElement !== oooRef.current) {
-      oooRef.current.value = formatOOO(data.ooo);
-    }
-  }, [data.leave, data.ooo]);
-
-  function getInputValues(): Omit<LeaveData, 'autoDetected'> {
-    return {
-      leave: clampLeaveDays(parseInt(leaveRef.current?.value ?? '0') || 0, maxLeaveDays),
-      ooo: parseOOO(oooRef.current?.value),
-    };
-  }
-
-  function handleLeaveChange() {
-    if (disabled) return;
-    // Editing the leave count manually disables auto-detection for this week.
-    onLeaveChange({ ...getInputValues(), autoDetected: false });
-  }
-
-  function handleOooChange() {
-    if (disabled) return;
-    onLeaveChange({ ...getInputValues(), autoDetected: data.autoDetected });
-  }
-
-  function stepOoo(deltaMinutes: number) {
-    if (disabled) return;
-    const nextOoo = Math.max(0, parseOOO(oooRef.current?.value) + deltaMinutes);
-    if (oooRef.current) oooRef.current.value = formatOOO(nextOoo);
-    onLeaveChange({
-      leave: clampLeaveDays(parseInt(leaveRef.current?.value ?? '0') || 0, maxLeaveDays),
-      ooo: nextOoo,
-      autoDetected: data.autoDetected,
-    });
-  }
-
-  // On blur, re-assert the current data (normalises the field and recovers from
-  // an external change that arrived while this field was focused, which the
-  // focus-guarded sync effect skips).
-  function syncLeave() {
-    if (leaveRef.current) leaveRef.current.value = String(data.leave);
-  }
-  function syncOoo() {
-    if (oooRef.current) oooRef.current.value = formatOOO(data.ooo);
-  }
+    if (leaveRef.current && document.activeElement !== leaveRef.current) leaveRef.current.value = String(data.leave);
+  }, [data.leave]);
 
   return (
     <div className={styles.section}>
       <div className={styles.field}>
         <span className={styles.fieldLabel}>{t('leaveLabel')}</span>
-        <input
-          ref={leaveRef}
-          id="pdks-leave"
-          type="number"
-          min={0}
-          max={maxLeaveDays}
-          defaultValue={data.leave}
-          disabled={disabled}
-          className={styles.input}
-          onChange={handleLeaveChange}
-          onBlur={syncLeave}
+        <input ref={leaveRef} id="pdks-leave" type="number" min={0} max={maxLeaveDays}
+          defaultValue={data.leave} disabled={disabled} className={styles.input}
+          onChange={() => {
+            if (!disabled) onLeaveChange({ ...data,
+              leave: clampLeaveDays(parseInt(leaveRef.current?.value ?? '0') || 0, maxLeaveDays), autoDetected: false });
+          }}
+          onBlur={() => { if (leaveRef.current) leaveRef.current.value = String(data.leave); }}
         />
         <span className={styles.unit}>{t('leaveDays')}</span>
       </div>
-
-      <div className={styles.field}>
-        <span className={styles.oooLabel}>{t('oooLabel')}</span>
-        <div
-          className={styles.tooltip}
-          dangerouslySetInnerHTML={{ __html: t('oooTooltip') }}
-        />
-        <div className={styles.oooStepper}>
-          <button
-            type="button"
-            aria-label={t('decreaseTime')}
-            disabled={disabled || data.ooo <= 0}
-            onClick={() => stepOoo(-15)}
-          >−</button>
-          <input
-            ref={oooRef}
-            id="pdks-ooo"
-            type="text"
-            inputMode="numeric"
-            placeholder="0:00"
-            defaultValue={formatOOO(data.ooo)}
-            disabled={disabled}
-            className={`${styles.input} ${styles.ooo}`}
-            onChange={handleOooChange}
-            onKeyDown={(event) => {
-              if (event.key === 'ArrowUp') {
-                event.preventDefault();
-                stepOoo(15);
-              } else if (event.key === 'ArrowDown') {
-                event.preventDefault();
-                stepOoo(-15);
-              }
-            }}
-            onBlur={syncOoo}
-          />
-          <button
-            type="button"
-            aria-label={t('increaseTime')}
-            disabled={disabled}
-            onClick={() => stepOoo(15)}
-          >+</button>
-        </div>
-      </div>
+      <button type="button" className={styles.oooSummary} onClick={onEditOoo} disabled={disabled}>
+        {t('oooLabel')} <b>{formatOOO(oooTotal)}</b>
+      </button>
     </div>
   );
 }

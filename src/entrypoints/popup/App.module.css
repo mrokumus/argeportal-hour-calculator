@@ -1055,6 +1055,7 @@
 }
 
 .dayCard {
+  background: transparent;
   min-width: 0;
   padding: 6px 2px;
   border: 1px solid var(--border);
@@ -1290,4 +1291,38 @@
 
 .previousWeekIncomplete {
   color: var(--red);
+}
+
+.dayCard {
+  font-family: inherit;
+  cursor: pointer;
+}
+.dayCard:disabled { cursor: default; opacity: 0.5; }
+.dayCard:focus-visible, .dayCard[aria-pressed="true"] {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.dayCard small { display: block; margin-top: 3px; font-size: 9px; color: var(--accent); }
+
+.dayToday small {
+  color: var(--surface);
+}
+
+.dashboardApp {
+  display: flex;
+  flex-direction: column;
+  height: 600px;
+  max-height: 600px;
+  overflow: hidden;
+}
+
+.dashboardApp > * {
+  flex-shrink: 0;
+}
+
+.dashboardApp .dashboardMain {
+  flex: 1 1 auto;
+  min-height: 0;
+  align-content: start;
+  overflow-y: auto;
 }

@@ -1,0 +1,30 @@
+.editor {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--inset);
+  color: var(--text);
+  font-size: 12px;
+}
+.header, .controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.header { justify-content: space-between; margin-bottom: 8px; }
+.editor button, .editor input {
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+.editor button { cursor: pointer; }
+.editor button:disabled { opacity: 0.4; cursor: default; }
+.editor input { width: 60px; text-align: center; }
+.editor input[aria-invalid="true"] { border-color: var(--red); }
+.editor small { display: block; margin-top: 7px; color: var(--muted); }
+.legacy { margin-top: 8px; border-top: 1px solid var(--border); }
+.legacy button { margin: 7px 5px 0 0; }

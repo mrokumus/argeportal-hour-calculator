@@ -60,7 +60,7 @@ Two ways to total a day's hours, toggled in the UI and persisted via `saveCalcMo
 
 - Weekly target = `validWorkdays × 9h − leaveDays × 9h + OOO`. `validWorkdays` counts configured workdays within both the week *and* the current month, so a week split across a month boundary is targeted correctly.
 - A weekday with < 5h and no manual leave entry is auto-detected as a leave day; manually editing leave for a week disables auto-detection for that week (`autoDetected: false`).
-- Daily hours are capped at 11h when summing the week total.
+- Daily credited hours are capped at the configured base (default 11h) plus OOO assigned to that date. OOO adds to the weekly target, but dated entries count only within the computed week and current month. Legacy undated OOO is preserved and can be assigned through the day editor; it never raises an arbitrary day's cap.
 - "Today" only counts on the current week and requires a same-day first check-in.
 - The daily exit time always uses the configured daily target. On the configured final workday, a separate weekly status shows the weekly completion time or the applicable daily-cap, midnight, or latest-exit warning. Before check-in, earliest entry bounds the completion estimate.
 

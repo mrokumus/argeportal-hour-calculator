@@ -23,7 +23,7 @@
   "leaveDays": "gün",
   "leaveBarLabel": "İzin",
   "oooLabel": "🏠 OOO",
-  "oooTooltip": "<strong>Out of Office</strong> — ofis dışında geçirilen süre.<br>PDKS'e yansımaz, 45s hedefe <strong>eklenir</strong>.<br>Format: <code style=\"background:#444;padding:1px 4px;border-radius:3px;\">SS:DD</code> (ör. 1:30)",
+  "oooTooltip": "OOO haftalık hedefe eklenir ve yalnızca girildiği günün üst sınırını artırır. Düzenlemek için gün kartına tıklayın.",
   "checking": "Kontrol ediliyor…",
   "releases": "Releases ↗",
   "upToDate": "✅ Güncel",
@@ -144,6 +144,14 @@
   "lastWeek": "Geçen hafta",
   "previousWeekUnavailable": "Veri alınamadı",
   "weekIncomplete": "Haftalık hedef tamamlanmadı",
+  "editDailyOoo": "Günlere göre",
+  "editOooForDay": "{date} için OOO düzenle",
+  "dailyOooLimit": "OOO ile günlük sınır: {h} (saat:dakika)",
+  "invalidDailyOoo": "0:00 ile 24:00 arasında bir süre girin.",
+  "unassignedOoo": "Önceki, günü belirtilmemiş OOO: {h}",
+  "assignOooHere": "Bu güne ata",
+  "clearUnassignedOoo": "Günsüz OOO’yu kaldır",
+  "close": "Kapat",
   "collapse": "Daralt",
   "expand": "Genişlet"
 }

@@ -1,6 +1,8 @@
 export interface LeaveData {
   leave: number;
   ooo: number;
+  /** Dated OOO minutes; ooo retains the aggregate for existing storage. */
+  oooByDate?: Record<string, number>;
   autoDetected: boolean;
 }
 

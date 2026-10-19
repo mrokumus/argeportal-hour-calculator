@@ -1,4 +1,5 @@
 import dayjs, { type Dayjs } from 'dayjs';
+import { getDailyCap, getWeekOoo } from './ooo';
 import type { AppSettings, CalcMode, LeaveData, Snapshot, WeekData } from '../types';
 import {
   getMondayOfWeek,
@@ -81,7 +82,7 @@ export function computeWeekData(
   const weekTargetH =
     validWorkdays * targetHours -
     leaveData.leave * targetHours +
-    leaveData.ooo / 60;
+    getWeekOoo(leaveData, weekStart, weekEnd, today) / 60;
 
   // Today — only meaningful on the current week and when the snapshot's first
   // check-in belongs to the same calendar day we're computing for.
@@ -132,7 +133,7 @@ export function computeWeekData(
     }
 
     let [wh, wm] = [Math.floor(totalMins / 60), totalMins % 60];
-    [wh, wm] = capDailyHours(wh, wm, capHours);
+    [wh, wm] = capDailyHours(wh, wm, getDailyCap(capHours * 60, leaveData, dateStr) / 60);
     weekTotalMin += wh * 60 + wm;
   });
 
@@ -142,9 +143,10 @@ export function computeWeekData(
     .reduce((sum, [date, minutes]) => sum + (firstRecord && date === todayKey ? 0 : minutes), 0)
     + (firstRecord ? todayH * 60 + todayM : 0);
 
-  const weekTotalWithTodayMin = weekTotalMin + Math.min(todayH * 60 + todayM, capHours * 60);
+  const todayCapMinutes = getDailyCap(capHours * 60, leaveData, todayKey);
+  const weekTotalWithTodayMin = weekTotalMin + Math.min(todayH * 60 + todayM, todayCapMinutes);
   const weeklyRemainingMinutesExact = Math.max(0,
-    Math.round(weekTargetH * 60) - weekTotalMin - Math.min(todayWorkedMinutes, capHours * 60));
+    Math.round(weekTargetH * 60) - weekTotalMin - Math.min(todayWorkedMinutes, todayCapMinutes));
   const weeklyRemainingMinutes = Math.max(0, Math.round(weekTargetH * 60) - weekTotalWithTodayMin);
 
   return {
@@ -208,7 +210,7 @@ export function getPreviousWeekSummary(snapshot: Snapshot, now: Dayjs, mode: Cal
   for (let date = start; !date.isAfter(end, 'day'); date = date.add(1, 'day')) {
     if (!date.isSame(now, 'month')) continue;
     const worked = totals[date.format('YYYY-MM-DD')] ?? 0;
-    if (worked >= settings.shortDayThresholdMinutes) minutes += Math.min(worked, settings.dailyCapMinutes);
+    if (worked >= settings.shortDayThresholdMinutes) minutes += Math.min(worked, leaveData ? getDailyCap(settings.dailyCapMinutes, leaveData, date.format('YYYY-MM-DD')) : settings.dailyCapMinutes);
   }
   const periodStart = start.isBefore(now.startOf('month')) ? now.startOf('month') : start;
   const periodEnd = end.isAfter(now.endOf('month')) ? now.endOf('month') : end;
