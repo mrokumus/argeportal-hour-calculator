@@ -1,16 +1,17 @@
 import { useEffect, useRef } from 'react';
 import type { LeaveData } from '../../types';
-import { formatOOO, parseOOO } from '../../lib/time-utils';
+import { formatOOO, parseOOO, clampLeaveDays } from '../../lib/time-utils';
 import { t } from '../../lib/i18n';
 import styles from './LeaveInputs.module.css';
 
 interface Props {
   data: LeaveData;
   disabled: boolean;
+  maxLeaveDays: number;
   onLeaveChange: (data: LeaveData) => void;
 }
 
-export function LeaveInputs({ data, disabled, onLeaveChange }: Props) {
+export function LeaveInputs({ data, disabled, maxLeaveDays, onLeaveChange }: Props) {
   const leaveRef = useRef<HTMLInputElement>(null);
   const oooRef = useRef<HTMLInputElement>(null);
 
@@ -28,7 +29,7 @@ export function LeaveInputs({ data, disabled, onLeaveChange }: Props) {
 
   function getInputValues(): Omit<LeaveData, 'autoDetected'> {
     return {
-      leave: Math.max(0, parseInt(leaveRef.current?.value ?? '0') || 0),
+      leave: clampLeaveDays(parseInt(leaveRef.current?.value ?? '0') || 0, maxLeaveDays),
       ooo: parseOOO(oooRef.current?.value),
     };
   }
@@ -49,7 +50,7 @@ export function LeaveInputs({ data, disabled, onLeaveChange }: Props) {
     const nextOoo = Math.max(0, parseOOO(oooRef.current?.value) + deltaMinutes);
     if (oooRef.current) oooRef.current.value = formatOOO(nextOoo);
     onLeaveChange({
-      leave: Math.max(0, parseInt(leaveRef.current?.value ?? '0') || 0),
+      leave: clampLeaveDays(parseInt(leaveRef.current?.value ?? '0') || 0, maxLeaveDays),
       ooo: nextOoo,
       autoDetected: data.autoDetected,
     });
@@ -74,7 +75,7 @@ export function LeaveInputs({ data, disabled, onLeaveChange }: Props) {
           id="pdks-leave"
           type="number"
           min={0}
-          max={5}
+          max={maxLeaveDays}
           defaultValue={data.leave}
           disabled={disabled}
           className={styles.input}

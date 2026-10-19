@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A Chrome (MV3) + Firefox (MV2) browser extension, built with **WXT** + **React 19** + **TypeScript**, that overlays a working-hours summary panel onto the **PDKS Giriş-Çıkış Bilgileri** page inside ARGEPORTAL (a technopark management portal). It scrapes the portal's own DOM tables — there is no backend API. All state (leave days, OOO, calc mode) lives in the page's `localStorage`.
+A Chrome (MV3) + Firefox (MV2) browser extension, built with **WXT** + **React 19** + **TypeScript**, that overlays a working-hours summary panel onto the **PDKS Giriş-Çıkış Bilgileri** page inside ARGEPORTAL (a technopark management portal). It scrapes the portal's own DOM tables — there is no backend API. All state (leave days, OOO, calc mode) lives in `browser.storage.local`.
 
 ## Commands
 
@@ -26,7 +26,7 @@ CI (`.github/workflows/ci.yml`) runs `npm test`, `npm run typecheck`, and `npm r
 
 ## Architecture
 
-The UI is a **browser-action popup** (`action.default_popup`). The core insight: "today worked" = *first check-in + now*, and completed days are static within a day — so the page only needs to be parsed **once a day**. That parse is cached as a `Snapshot` in `browser.storage.local`, and the popup recomputes everything from the snapshot + current time, even with the ARGEPORTAL page closed.
+The UI is a **browser-action popup** (`action.default_popup`). In sessions mode, today worked is completed sessions plus elapsed time since the latest open check-in; span mode uses now minus the first check-in. Completed sessions and the latest punch are cached; refresh after new punches so the popup can track the current open session correctly. That parse is cached as a `Snapshot` in `browser.storage.local`, and the popup recomputes everything from the snapshot + current time, even with the ARGEPORTAL page closed.
 
 Because there's a popup, `action.onClicked` never fires — **there is no `background.ts`** (it was deleted; don't reintroduce icon-on-click logic there).
 
@@ -40,7 +40,7 @@ Data flow on popup open:
 
 4. **`src/lib/parser.ts`** — `parseSnapshot()` runs *in the page*. Navigates the PDKS menu (`openPdksPanel`) if the grid isn't shown and forces the month dropdown to the current month (`ensureCurrentMonthSelected`) — both click real elements / dispatch `change` events with fixed `setTimeout` delays (`*_DELAY_MS`). Then scrapes the two `div.flexgrid` tables into a serializable `Snapshot`: whole-month per-day totals for **both** calc modes plus today's first check-in (ISO). Returns `{ ok: true, snapshot } | { ok: false, reason }`.
 
-5. **`src/lib/calc.ts`** — `computeWeekData(snapshot, weekOffset, calcMode, leaveData, now)`: **pure**, no DOM. The offline recomputation — auto-detects leave, applies the weekly-target formula, derives today/week totals/exit times from the cached daily totals + `firstRecordISO` vs. `now`. Returns `WeekData` plus a `leaveDataChanged` flag the caller persists.
+5. **`src/lib/calc.ts`** — `computeWeekData(snapshot, weekOffset, calcMode, leaveData, now)`: **pure**, no DOM. The offline recomputation — auto-detects leave, applies the weekly-target formula, derives today/week/month totals from cached completed sessions, the latest open check-in, and current time. Returns `WeekData` plus a `leaveDataChanged` flag the caller persists.
 
 6. **`src/lib/time-utils.ts`** — pure time math (`calculateTime`, `calculateRemaining`, `capDailyHours`, `parseOOO`, `countValidWorkdays`, week-boundary helpers). Fully unit-tested. Keep new time logic here and cover it in `tests/utils.test.ts`.
 
@@ -58,11 +58,11 @@ Two ways to total a day's hours, toggled in the UI and persisted via `saveCalcMo
 
 ### Business rules baked into the calc
 
-- Weekly target = `validWorkdays × 9h − leaveDays × 9h + OOO`. `validWorkdays` counts only Mon–Fri within both the week *and* the current month, so a week split across a month boundary is targeted correctly.
+- Weekly target = `validWorkdays × 9h − leaveDays × 9h + OOO`. `validWorkdays` counts configured workdays within both the week *and* the current month, so a week split across a month boundary is targeted correctly.
 - A weekday with < 5h and no manual leave entry is auto-detected as a leave day; manually editing leave for a week disables auto-detection for that week (`autoDetected: false`).
 - Daily hours are capped at 11h when summing the week total.
 - "Today" only counts on the current week and requires a same-day first check-in.
-- On **Fridays**, the remaining-to-weekly-target drives the displayed exit time instead of the daily 9h.
+- The daily exit time always uses the configured daily target. On the configured final workday, a separate weekly status shows the weekly completion time or the applicable daily-cap, midnight, or latest-exit warning. Before check-in, earliest entry bounds the completion estimate.
 
 ### i18n
 

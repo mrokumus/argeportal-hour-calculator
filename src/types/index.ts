@@ -44,6 +44,8 @@ export interface Snapshot {
   lastRecordISO?: string | null;
   /** Whether today's punch list ends with an unmatched check-in. */
   todayHasOpenSession?: boolean;
+  /** Closed sessions from raw punches; excludes the current open session. */
+  todayCompletedSessionMinutes?: number;
   /** Whole-month per-day worked minutes, sessions mode (sum of session columns). */
   dailyTotalsSessions: Record<string, number>;
   /** Whole-month per-day worked minutes, span mode (last punch − first punch). */
@@ -59,6 +61,8 @@ export type ParseResult =
 export interface WeekData {
   leaveData: LeaveData;
   weekTargetH: number;
+  validWorkdays: number;
+  monthlyTotalMin: number;
   // today
   todayH: number;
   todayM: number;

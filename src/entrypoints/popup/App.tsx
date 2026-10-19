@@ -540,6 +540,8 @@ export function App() {
   const data = result.data;
   const {
     weekTargetH,
+    validWorkdays,
+    monthlyTotalMin,
     todayH,
     todayM,
     todayRemainingH,
@@ -643,7 +645,6 @@ export function App() {
     .subtract(plannerTargetMinutes, 'minute');
   const requiredEntryTime = `${pad(requiredEntry.hour())}:${pad(requiredEntry.minute())}`;
 
-  const monthlyTotalMin = Object.values(dailyTotals).reduce((sum, minutes) => sum + minutes, 0);
   const [monthlyH, monthlyM] = calculateTime(monthlyTotalMin / 60);
 
   let dailyCapTimeText: string | undefined;
@@ -818,7 +819,7 @@ export function App() {
         })} />;
       })}
 
-      <LeaveInputs key={weekKey} data={leaveData ?? DEFAULT_LEAVE} disabled={refreshing} onLeaveChange={handleLeaveChange} />
+      <LeaveInputs key={weekKey} maxLeaveDays={validWorkdays} data={data.leaveData} disabled={refreshing} onLeaveChange={handleLeaveChange} />
       {devBar}
       <Footer />
     </div>
