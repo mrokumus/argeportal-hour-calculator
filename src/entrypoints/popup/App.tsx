@@ -285,15 +285,15 @@ export function App() {
       setSettingsError(true);
       return false;
     }
-    if (settingsDraft.notifyDailyTarget || settingsDraft.notifyDailyCap) {
-      if (!hasNotificationManifestPermission()) return false;
-      try {
-        if (!await browser.permissions.request({ permissions: ['notifications'] })) {
-          setNotificationStatus('denied'); return false;
-        }
-      } catch { setNotificationStatus('failed'); return false; }
-    }
     const nextSettings = { ...settingsDraft, workdays: [...settingsDraft.workdays] };
+    // Toggles request permission themselves; saving must not be blocked by a revoked grant.
+    if ((nextSettings.notifyDailyTarget || nextSettings.notifyDailyCap)
+      && !await browser.permissions.contains({ permissions: ['notifications'] }).catch(() => false)) {
+      nextSettings.notifyDailyTarget = false;
+      nextSettings.notifyDailyCap = false;
+      setSettingsDraft(current => ({ ...current, notifyDailyTarget: false, notifyDailyCap: false }));
+      setNotificationStatus('denied');
+    }
     await Promise.all([savePortalUrl(normalized), saveSettings(nextSettings)]);
     setPortalUrl(normalized);
     setPortalUrlDraft(normalized);

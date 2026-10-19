@@ -52,7 +52,8 @@ export default defineBackground(() => {
   }
 
   async function createNotification(id: string, message: string) {
-    if (!await hasPermission() || await browser.notifications.getPermissionLevel() === 'denied') {
+    // Firefox has no getPermissionLevel; there the permissions check is enough.
+    if (!await hasPermission() || await browser.notifications.getPermissionLevel?.() === 'denied') {
       throw new Error('Notification permission denied');
     }
     await browser.notifications.create(id, {
@@ -124,7 +125,7 @@ export default defineBackground(() => {
         const now = dayjs();
         const weekKey = getMondayOfWeek(0, now.toDate()).toISOString().slice(0, 10);
         const leave = await getLeaveData(weekKey);
-        const isTarget = Math.random() < 0.5;
+        const isTarget = settings.notifyDailyTarget || !settings.notifyDailyCap;
         const minutes = isTarget ? settings.dailyTargetMinutes
           : getDailyCap(settings.dailyCapMinutes, leave, now.format('YYYY-MM-DD'));
         const message = t(isTarget ? 'dailyTargetNotification' : 'dailyCapNotification', {
