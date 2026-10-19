@@ -67,6 +67,8 @@ export interface WeekData {
   firstRecord: ReturnType<typeof import('dayjs')> | null;
   // week
   weekTotalMin: number;
+  weekTotalWithTodayMin: number;
+  weeklyRemainingMinutes: number;
   shortDays: Array<{ date: string; mins: number }>;
 }
 

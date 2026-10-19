@@ -130,7 +130,8 @@ describe('computeWeekData', () => {
 
     expect(result.data.weekTargetH).toBe(45);
     expect(result.data.todayH).toBe(12);
-    expect(result.data.weekTotalMin + 660).toBe(43 * 60);
+    expect(result.data.weekTotalWithTodayMin).toBe(43 * 60);
+    expect(result.data.weeklyRemainingMinutes).toBe(120);
     jest.useRealTimers();
   });
 
@@ -188,5 +189,19 @@ describe('weekly status displayed by the popup', () => {
   it('does not treat Friday as the final day when Saturday is configured', () => {
     expect(getWeeklyStatus(dayjs('2026-08-07T14:00:00'), 60, 300, true,
       { ...settings, workdays: [1, 2, 3, 4, 5, 6] }).kind).toBe('hidden');
+  });
+});
+
+
+describe('weekly completion before earliest entry', () => {
+  const settings = { ...DEFAULT_SETTINGS, workdays: [1, 2, 3, 4, 5], earliestEntry: '06:00', latestExit: '16:00' };
+  it('warns when starting at earliest entry would finish too late', () => {
+    expect(getWeeklyStatus(dayjs('2026-08-07T05:00:00'), 650, 0, false, settings).kind).toBe('latest-exit');
+  });
+  it('allows completion exactly at latest exit', () => {
+    expect(getWeeklyStatus(dayjs('2026-08-07T05:00:00'), 600, 0, false, settings).kind).toBe('remaining');
+  });
+  it('uses the actual clock for an already open session', () => {
+    expect(getWeeklyStatus(dayjs('2026-08-07T05:00:00'), 650, 0, true, settings)).toEqual({ kind: 'finish', time: '15:50' });
   });
 });

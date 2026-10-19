@@ -118,6 +118,9 @@ export function computeWeekData(
     weekTotalMin += wh * 60 + wm;
   });
 
+  const weekTotalWithTodayMin = weekTotalMin + Math.min(todayH * 60 + todayM, capHours * 60);
+  const weeklyRemainingMinutes = Math.max(0, Math.round(weekTargetH * 60) - weekTotalWithTodayMin);
+
   return {
     data: {
       leaveData,
@@ -128,6 +131,8 @@ export function computeWeekData(
       todayRemainingM,
       firstRecord,
       weekTotalMin,
+      weekTotalWithTodayMin,
+      weeklyRemainingMinutes,
       shortDays,
     },
     leaveDataChanged,
@@ -150,7 +155,10 @@ export function getWeeklyStatus(
   if (!settings.workdays.includes(now.day()) ||
       offset(now.day()) !== Math.max(...settings.workdays.map(offset))) return { kind: 'hidden' };
   if (remainingMinutes > Math.max(0, settings.dailyCapMinutes - todayMinutes)) return { kind: 'daily-cap' };
-  const completion = now.add(remainingMinutes, 'minute');
+  const [entryHour, entryMinute] = settings.earliestEntry.split(':').map(Number);
+  const earliestStart = now.hour(entryHour).minute(entryMinute).second(0).millisecond(0);
+  const start = !hasOpenSession && now.isBefore(earliestStart) ? earliestStart : now;
+  const completion = start.add(remainingMinutes, 'minute');
   if (!completion.isSame(now, 'day')) return { kind: 'day-end' };
   const [hour, minute] = settings.latestExit.split(':').map(Number);
   if (completion.isAfter(now.hour(hour).minute(minute).endOf('minute'))) return { kind: 'latest-exit' };

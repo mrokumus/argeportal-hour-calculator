@@ -546,6 +546,8 @@ export function App() {
     todayRemainingM,
     firstRecord,
     weekTotalMin,
+    weekTotalWithTodayMin,
+    weeklyRemainingMinutes,
     shortDays,
   } = data;
 
@@ -563,7 +565,6 @@ export function App() {
   const hasStartedToday = !!firstRecord && today.isSame(dayjs(firstRecord), 'day');
 
   // ---- week ring ----
-  const weekTotalWithTodayMin = weekTotalMin + cappedTodayMin;
   const wTotalH = weekTotalWithTodayMin / 60;
   const [wth, wtm] = calculateTime(wTotalH);
   const [rwth, rwtm] = calculateRemaining(wTotalH, true, weekTargetH);
@@ -620,7 +621,6 @@ export function App() {
   const tomorrowIsWorkday = settings.workdays.includes(tomorrow.day())
     && tomorrowOffset > todayOffset;
   const showPlanner = planningToday || tomorrowIsWorkday;
-  const weeklyRemainingMinutes = weekRemH * 60 + weekRemM;
   const plannedDate = planningToday ? today : tomorrow;
   const plannedDayLabel = t(weekDayFullLabels[plannedDate.day()]);
   const plannedDayOffset = plannedDate.day() === 0 ? 6 : plannedDate.day() - 1;
