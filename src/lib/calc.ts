@@ -92,6 +92,8 @@ export function computeWeekData(
       : null;
   if (firstRecord && !today.isSame(firstRecord, 'day')) firstRecord = null;
 
+  let todayWorkedMinutes = 0;
+  let todayRemainingMinutesExact = dailyTargetH * 60;
   let todayH = 0;
   let todayM = 0;
   let [todayRemainingH, todayRemainingM] = calculateTime(dailyTargetH);
@@ -108,8 +110,10 @@ export function computeWeekData(
         workedHours = completed / 60 + Math.max(0, today.diff(openStart, 'hour', true));
       }
     }
-    [todayH, todayM] = calculateTime(workedHours);
-    [todayRemainingH, todayRemainingM] = calculateRemaining(workedHours, false, dailyTargetH);
+    todayWorkedMinutes = Math.max(0, Math.round(workedHours * 3_600_000) / 60_000);
+    todayRemainingMinutesExact = Math.max(0, dailyTargetH * 60 - todayWorkedMinutes);
+    [todayH, todayM] = calculateTime(todayWorkedMinutes / 60);
+    [todayRemainingH, todayRemainingM] = calculateRemaining(todayWorkedMinutes / 60, false, dailyTargetH);
   }
 
   // Week totals (completed days only — excludes today for the current week)
@@ -139,6 +143,8 @@ export function computeWeekData(
     + (firstRecord ? todayH * 60 + todayM : 0);
 
   const weekTotalWithTodayMin = weekTotalMin + Math.min(todayH * 60 + todayM, capHours * 60);
+  const weeklyRemainingMinutesExact = Math.max(0,
+    Math.round(weekTargetH * 60) - weekTotalMin - Math.min(todayWorkedMinutes, capHours * 60));
   const weeklyRemainingMinutes = Math.max(0, Math.round(weekTargetH * 60) - weekTotalWithTodayMin);
 
   return {
@@ -147,6 +153,9 @@ export function computeWeekData(
       weekTargetH,
       validWorkdays,
       monthlyTotalMin,
+      todayWorkedMinutes,
+      todayRemainingMinutesExact,
+      weeklyRemainingMinutesExact,
       todayH,
       todayM,
       todayRemainingH,
@@ -180,7 +189,7 @@ export function getWeeklyStatus(
   const [entryHour, entryMinute] = settings.earliestEntry.split(':').map(Number);
   const earliestStart = now.hour(entryHour).minute(entryMinute).second(0).millisecond(0);
   const start = !hasOpenSession && now.isBefore(earliestStart) ? earliestStart : now;
-  const completion = start.add(remainingMinutes, 'minute');
+  const completion = roundCheckInUp(start.add(Math.round(remainingMinutes * 60_000), 'millisecond'));
   if (!completion.isSame(now, 'day')) return { kind: 'day-end' };
   const [hour, minute] = settings.latestExit.split(':').map(Number);
   if (completion.isAfter(now.hour(hour).minute(minute).endOf('minute'))) return { kind: 'latest-exit' };

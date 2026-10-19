@@ -15,7 +15,7 @@ import {
   saveSnapshot,
 } from '../../lib/storage';
 import { requestParse } from '../../lib/refresh';
-import { calculateRemaining, calculateTime, getMondayOfWeek } from '../../lib/time-utils';
+import { calculateRemaining, calculateTime, getMondayOfWeek, roundCheckInUp } from '../../lib/time-utils';
 import { setLocale, t } from '../../lib/i18n';
 import { DEFAULT_SETTINGS, REFRESH_INTERVAL_MS } from '../../config';
 import { Warning } from '../../components/Warning/Warning';
@@ -542,6 +542,9 @@ export function App() {
     weekTargetH,
     validWorkdays,
     monthlyTotalMin,
+    todayWorkedMinutes,
+    todayRemainingMinutesExact,
+    weeklyRemainingMinutesExact,
     todayH,
     todayM,
     todayRemainingH,
@@ -653,13 +656,13 @@ export function App() {
     && snapshot.todayHasOpenSession !== false
     && dailyCapMin > dailyTargetMin
   ) {
-    const remainingToCap = Math.max(0, dailyCapMin - todayMin);
+    const remainingToCap = Math.max(0, dailyCapMin - todayWorkedMinutes);
     if (remainingToCap === 0) {
       dailyCapTimeText = t('dailyMaximumReached', {
         h: formatDuration(Math.floor(dailyCapMin / 60), dailyCapMin % 60),
       });
     } else {
-      const capTime = today.add(remainingToCap, 'minute');
+      const capTime = roundCheckInUp(today.add(Math.round(remainingToCap * 60_000), 'millisecond'));
       dailyCapTimeText = t('dailyMaximumAt', {
         h: formatDuration(Math.floor(dailyCapMin / 60), dailyCapMin % 60),
         t: `${pad(capTime.hour())}:${pad(capTime.minute())}`,
@@ -671,14 +674,14 @@ export function App() {
   if (snapshot.todayHasOpenSession === false) {
     compactTodayStatus = t('checkedOutCompact');
   } else if (todayRemainingH !== 0 || todayRemainingM !== 0) {
-    const lt = today.add(todayRemainingH, 'h').add(todayRemainingM, 'm');
+    const lt = roundCheckInUp(today.add(Math.round(todayRemainingMinutesExact * 60_000), 'millisecond'));
     const exitClock = `${pad(lt.hour())}:${pad(lt.minute())}`;
     compactTodayStatus = lt.isSame(today, 'day')
       ? t('compactExitTime', { t: exitClock })
       : t('tomorrowAt', { t: exitClock });
   }
 
-  const weeklyState = getWeeklyStatus(today, weeklyRemainingMinutes, todayMin,
+  const weeklyState = getWeeklyStatus(today, weeklyRemainingMinutesExact, todayWorkedMinutes,
     hasStartedToday && snapshot.todayHasOpenSession !== false, settings);
   const weeklyCompletionTime = weeklyState.kind === 'finish' ? weeklyState.time : null;
   let weeklyStatus: string | null = null;

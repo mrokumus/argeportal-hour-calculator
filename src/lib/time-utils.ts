@@ -18,7 +18,7 @@ export function getSundayOfWeek(offset: number, baseDate: Date = new Date()): Da
 }
 
 export function calculateTime(time: number): [number, number] {
-  let minute = Math.round(time * 60);
+  let minute = Math.floor(Math.max(0, time * 60) + 1e-9);
   let hour = 0;
   while (minute >= 60) { minute -= 60; hour++; }
   return [hour, minute];
@@ -31,7 +31,7 @@ export function calculateRemaining(
 ): [number, number] {
   const remaining = target - time;
   if (remaining <= 0) return [0, 0];
-  return calculateTime(remaining);
+  return calculateTime(Math.ceil(remaining * 60 - 1e-9) / 60);
 }
 
 export function calculateRemainingX(
