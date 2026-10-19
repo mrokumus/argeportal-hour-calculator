@@ -7,7 +7,7 @@ PDKS Time Calculator'daki önemli değişiklikler burada listelenir. Bu dosya [C
 ### Eklenenler
 
 - Günlük hedefe veya o günün OOO'su dahil günlük üst sınıra ulaşıldığında isteğe bağlı tarayıcı bildirimleri ve test bildirimi düğmesi. Bildirim izni yalnızca bir bildirim açıldığında istenir.
-- Ofis dışı çalışma (OOO) artık tek tek günlere atanabilir; o günün günlük üst sınırını artırır ve ok tuşlarıyla 15 dakikalık adımlarla ayarlanabilir. Bugünün OOO düzenleyicisi alt bilgiden açılır.
+- OOO (out of office) süresi artık tek tek günlere atanabilir; o günün günlük üst sınırını artırır ve ok tuşlarıyla 15 dakikalık adımlarla ayarlanabilir. Bugünün OOO düzenleyicisi alt bilgiden açılır.
 - İçinde bulunulan aydaki geçen haftanın özeti: sayılan tarih aralığını ve tamamlanma durumunu gösterir, tamamlanmayan hedefler kırmızıyla işaretlenir.
 - Açılır pencerenin alt bilgisine geri bildirim formu bağlantısı.
 - Daha anlaşılır günlük ve haftalık çıkış saatleri.

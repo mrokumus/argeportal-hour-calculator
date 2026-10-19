@@ -46,7 +46,7 @@ A Chrome and Firefox extension that reads ARGEPORTAL PDKS records and displays a
 ### Leave and OOO
 
 - **Leave:** Previous weekdays below the configured work threshold are detected automatically. A manual edit disables automatic detection for the current week.
-- **OOO:** Time worked outside the office is assigned to a specific day by selecting that day, entered as `H:MM` (for example `1:30`), and adjusted in 15-minute steps with the arrow keys. It is included in the weekly target and raises that day's daily cap.
+- **OOO (out of office):** Time that PDKS shows as worked while you were actually away and not working. Assign it to a specific day by selecting that day, enter it as `H:MM` (for example `1:30`), and adjust it in 15-minute steps with the arrow keys. It is added to the weekly target and raises that day's daily cap.
 
 ### Notifications
 
