@@ -6,16 +6,18 @@ A Chrome and Firefox extension that reads ARGEPORTAL PDKS records and displays a
 
 ## Features
 
-- Live time worked today and remaining time for the 9-hour daily target
-- Weekly and monthly totals with an 11-hour daily cap for weekly calculations
+- Live time worked today and remaining time for the daily target (9 hours by default)
+- Weekly and monthly totals with a daily cap for weekly calculations (11 hours by default)
+- Previous week summary within the current month, with incomplete targets highlighted
 - Estimated exit time for the daily or weekly target
 - Tomorrow planner with an adjustable target exit time
 - Thursday-to-Friday planning based on the live weekly remainder
 - Session-total and first-to-last calculation modes
 - Automatic leave detection and manual leave overrides
-- Out-of-office time support
+- Out-of-office time assigned to individual days
+- Optional browser notifications when the daily target or daily cap is reached
 - Cached snapshots when ARGEPORTAL is not the active tab
-- Configurable ARGEPORTAL address
+- Configurable ARGEPORTAL address, work hours and workdays
 - Turkish and English interfaces
 
 ## Installation
@@ -44,7 +46,11 @@ A Chrome and Firefox extension that reads ARGEPORTAL PDKS records and displays a
 ### Leave and OOO
 
 - **Leave:** Previous weekdays below the configured work threshold are detected automatically. A manual edit disables automatic detection for the current week.
-- **OOO:** Time worked outside the office can be entered as `H:MM` (for example `1:30`) and is included in the weekly target.
+- **OOO:** Time worked outside the office is assigned to a specific day by selecting that day, entered as `H:MM` (for example `1:30`), and adjusted in 15-minute steps with the arrow keys. It is included in the weekly target and raises that day's daily cap.
+
+### Notifications
+
+Enable daily target or daily cap notifications in **Settings**; the browser asks for notification permission the first time. Notifications are calculated from the last portal record, so refresh the extension after breaks or check-out to keep them accurate. Use **Send test notification** to check that your browser and operating system allow them.
 
 ### Planning
 
@@ -83,6 +89,9 @@ popup/App.tsx
   ├─ falls back to the cached browser.storage.local snapshot
   └─ renders live calculations and planning controls
 
+background.ts
+  └─ checks cached work totals on an alarm and sends optional notifications
+
 content/index.ts
   └─ registers the on-demand parser message handler
 
@@ -99,6 +108,7 @@ Important directories:
 ```text
 src/entrypoints/popup/  Popup application
 src/entrypoints/content/ On-demand content script
+src/entrypoints/background.ts Notification alarms
 src/components/         React UI components
 src/lib/                Parser, calculations, storage and utilities
 src/locales/            Turkish and English strings
@@ -110,9 +120,11 @@ tests/                  Calculation and time utility tests
 The version is defined in `package.json`. A GitHub Release tag must match it exactly with a `v` prefix, for example:
 
 ```text
-package.json: 1.6.2
-release tag:  v1.6.2
+package.json: 1.7.0
+release tag:  v1.7.0
 ```
+
+Record user-facing changes in [`CHANGELOG.md`](CHANGELOG.md) before each release; its entry can be used as the GitHub Release notes.
 
 Publishing a GitHub Release runs `.github/workflows/release.yml`, attaches Chrome/Firefox artifacts to the release, and submits both existing store listings for review. The workflow can also retry only Chrome or only Firefox through `workflow_dispatch`.
 
