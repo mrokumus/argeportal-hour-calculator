@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
 import type { AppSettings, CalcMode, LeaveData, Snapshot } from '../../types';
-import { computeWeekData } from '../../lib/calc';
+import { computeWeekData, getWeeklyStatus } from '../../lib/calc';
 import {
   getCalcMode,
   getLeaveData,
@@ -677,20 +677,19 @@ export function App() {
       : t('tomorrowAt', { t: exitClock });
   }
 
-  const isLastWorkday = isWorkday && todayOffset === lastWorkdayOffset;
-  let weeklyCompletionTime: string | null = null;
-  let weeklyStatus: string | null = weekDone ? t('canLeave') : null;
-  if (!weekDone && isLastWorkday) {
-    const capacity = Math.max(0, dailyCapMin - todayMin);
-    const completion = today.add(weeklyRemainingMinutes, 'minute');
-    if (weeklyRemainingMinutes > capacity || !completion.isSame(today, 'day')) {
-      weeklyStatus = t('weeklyCannotFinish', { h: minutesToTime(dailyCapMin) });
-    } else if (!hasStartedToday || snapshot.todayHasOpenSession === false) {
-      weeklyStatus = t('weeklyWorkRemaining', { h: weekRemH, m: weekRemM });
-    } else {
-      weeklyCompletionTime = completion.format('HH:mm');
-      weeklyStatus = t('weeklyFinishAt', { t: weeklyCompletionTime });
-    }
+  const weeklyState = getWeeklyStatus(today, weeklyRemainingMinutes, todayMin,
+    hasStartedToday && snapshot.todayHasOpenSession !== false, settings);
+  const weeklyCompletionTime = weeklyState.kind === 'finish' ? weeklyState.time : null;
+  let weeklyStatus: string | null = null;
+  switch (weeklyState.kind) {
+    case 'complete': weeklyStatus = t('canLeave'); break;
+    case 'daily-cap': weeklyStatus = t('weeklyCannotFinish', {
+      h: formatDuration(Math.floor(dailyCapMin / 60), dailyCapMin % 60),
+    }); break;
+    case 'day-end': weeklyStatus = t('weeklyPastMidnight'); break;
+    case 'latest-exit': weeklyStatus = t('weeklyPastLatestExit', { t: settings.latestExit }); break;
+    case 'remaining': weeklyStatus = t('weeklyWorkRemaining', { h: weekRemH, m: weekRemM }); break;
+    case 'finish': weeklyStatus = t('weeklyFinishAt', { t: weeklyState.time }); break;
   }
 
   return (

@@ -138,6 +138,8 @@
   "weeklyFinishAt": "Weekly target reached at {t}",
   "weeklyCannotFinish": "Weekly target cannot be completed today (daily limit {h})",
   "weeklyWorkRemaining": "To weekly target: {h}h {m}m",
+  "weeklyPastMidnight": "Weekly target cannot be completed before midnight",
+  "weeklyPastLatestExit": "Weekly target cannot be completed by the latest exit time ({t})",
   "collapse": "Collapse",
   "expand": "Expand"
 }

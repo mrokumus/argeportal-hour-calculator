@@ -138,6 +138,8 @@
   "weeklyFinishAt": "Haftalık hedef {t} saatinde tamamlanır",
   "weeklyCannotFinish": "Haftalık hedef bugün tamamlanamaz (günlük sınır {h})",
   "weeklyWorkRemaining": "Haftalık hedefe kalan: {h} sa {m} dk",
+  "weeklyPastMidnight": "Haftalık hedef gece yarısından önce tamamlanamaz",
+  "weeklyPastLatestExit": "Haftalık hedef son çıkış saatine ({t}) kadar tamamlanamaz",
   "collapse": "Daralt",
   "expand": "Genişlet"
 }

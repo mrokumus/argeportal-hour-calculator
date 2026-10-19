@@ -67,11 +67,7 @@ export interface WeekData {
   firstRecord: ReturnType<typeof import('dayjs')> | null;
   // week
   weekTotalMin: number;
-  weeklyExitStr: string | null;
   shortDays: Array<{ date: string; mins: number }>;
-  // exit time on the configured final workday
-  exitRemainingH: number;
-  exitRemainingM: number;
 }
 
 export interface WeekStats {
@@ -87,7 +83,6 @@ export interface WeekStats {
   firstRecord: ReturnType<typeof import('dayjs')> | null;
   // week
   weekTotalMin: number;
-  weeklyExitStr: string | null;
   shortDays: Array<{ date: string; mins: number }>;
   // per-day map
   dailyTotals: Record<string, number>;

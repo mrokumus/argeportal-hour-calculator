@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
 import { DEFAULT_SETTINGS } from '../src/config';
-import { computeWeekData } from '../src/lib/calc';
+import { computeWeekData, getWeeklyStatus } from '../src/lib/calc';
 import type { Snapshot } from '../src/types';
 
 describe('computeWeekData', () => {
@@ -102,7 +102,6 @@ describe('computeWeekData', () => {
     );
 
     expect([result.data.todayRemainingH, result.data.todayRemainingM]).toEqual([3, 0]);
-    expect([result.data.exitRemainingH, result.data.exitRemainingM]).toEqual([3, 0]);
   });
 
   it('caps today at 11h when calculating the weekly remainder', () => {
@@ -131,7 +130,7 @@ describe('computeWeekData', () => {
 
     expect(result.data.weekTargetH).toBe(45);
     expect(result.data.todayH).toBe(12);
-    expect([result.data.exitRemainingH, result.data.exitRemainingM]).toEqual([2, 0]);
+    expect(result.data.weekTotalMin + 660).toBe(43 * 60);
     jest.useRealTimers();
   });
 
@@ -166,22 +165,28 @@ describe('computeWeekData', () => {
 });
 
 
-describe('configured last workday exit', () => {
+describe('weekly status displayed by the popup', () => {
+  const settings = { ...DEFAULT_SETTINGS, workdays: [1, 2, 3, 4, 5] };
   it.each([
-    ['2026-08-06', [1, 2, 3, 4], 1],
-    ['2026-08-07', [1, 2, 3, 4, 5, 6], 4],
-  ])('keeps daily and weekly remainders separate on %s', (date, workdays, expectedHours) => {
-    const now = dayjs(`${date}T14:00:00`);
-    const totals = { '2026-08-03': 600, '2026-08-04': 600, '2026-08-05': 600 };
-    const snapshot: Snapshot = {
-      capturedAt: now.toISOString(), capturedDay: date,
-      firstRecordISO: dayjs(`${date}T09:00:00`).toISOString(),
-      dailyTotalsSessions: totals, dailyTotalsSpan: totals,
-    };
-    const result = computeWeekData(snapshot, 0, 'sessions',
-      { leave: 0, ooo: 0, autoDetected: false }, now, 9,
-      { ...DEFAULT_SETTINGS, workdays });
-    expect(result.data.todayRemainingH).toBe(4);
-    expect(result.data.exitRemainingH).toBe(expectedHours);
+    ['2026-08-07T16:00:00', 540, 0, false, 'day-end'],
+    ['2026-08-07T22:00:00', 180, 420, true, 'day-end'],
+    ['2026-08-07T18:00:00', 150, 300, true, 'latest-exit'],
+    ['2026-08-07T18:00:00', 361, 300, true, 'daily-cap'],
+    ['2026-08-07T18:00:00', 120, 300, true, 'finish'],
+    ['2026-08-07T18:00:00', 120, 300, false, 'remaining'],
+    ['2026-08-07T18:00:00', 0, 540, true, 'complete'],
+    ['2026-08-06T18:00:00', 120, 300, true, 'hidden'],
+  ])('%s remaining %s gives %s', (date, remaining, worked, open, kind) => {
+    const result = getWeeklyStatus(dayjs(date), remaining, worked, open, { ...settings, latestExit: '20:00' });
+    expect(result.kind).toBe(kind);
+    if (result.kind === 'finish') expect(result.time).toBe('20:00');
+  });
+  it('uses Thursday as the configured final workday', () => {
+    expect(getWeeklyStatus(dayjs('2026-08-06T14:00:00'), 60, 300, true,
+      { ...settings, workdays: [1, 2, 3, 4] })).toEqual({ kind: 'finish', time: '15:00' });
+  });
+  it('does not treat Friday as the final day when Saturday is configured', () => {
+    expect(getWeeklyStatus(dayjs('2026-08-07T14:00:00'), 60, 300, true,
+      { ...settings, workdays: [1, 2, 3, 4, 5, 6] }).kind).toBe('hidden');
   });
 });
