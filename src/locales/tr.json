@@ -140,6 +140,7 @@
   "weeklyWorkRemaining": "Haftalık hedefe kalan: {h} sa {m} dk",
   "weeklyPastMidnight": "Haftalık hedef gece yarısından önce tamamlanamaz",
   "weeklyPastLatestExit": "Haftalık hedef son çıkış saatine ({t}) kadar tamamlanamaz",
+  "feedback": "Geri bildirim",
   "collapse": "Daralt",
   "expand": "Genişlet"
 }

@@ -66,3 +66,6 @@ export const DEFAULT_SETTINGS = {
   autoDetectLeave: true,
   locale: 'auto',
 } as const;
+
+/** User feedback form opened from the popup footer. */
+export const FEEDBACK_URL = 'https://forms.gle/W8Hv72vJmTk2uNFa6';
