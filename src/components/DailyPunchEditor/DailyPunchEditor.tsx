@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import type { ManualPunches } from '../../types';
 import { t } from '../../lib/i18n';
-import { validPunchTimes } from '../../lib/punches';
-import styles from './DailyOooEditor.module.css';
+import { validPunchTimes } from '../../lib/time-utils';
+import styles from './DailyPunchEditor.module.css';
 
 interface Props {
   portal: ManualPunches;
@@ -63,6 +63,7 @@ export function DailyPunchEditor({ portal, manual, disabled, onSave }: Props) {
       {manual && <button className={styles.resetPunches} type="button" disabled={disabled || saving}
         onClick={() => void save({})}>{t('resetPunchTimes')}</button>}
       <small>{t('punchTimesHint')}</small>
+      {savedExit && !savedEntry && <small role="status">{t('missingPunchEntry')}</small>}
       {error && <small role="alert">{t(error)}</small>}
     </form>
   );

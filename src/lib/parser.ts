@@ -108,10 +108,14 @@ function scrapeSessions(rows: NodeListOf<Element>): Record<string, number> {
 function scrapePunches(rows: NodeListOf<Element>, month: dayjs.Dayjs) {
   const byDate: Record<string, dayjs.Dayjs[]> = {};
   rows.forEach(row => {
-    const raw = row.querySelector<HTMLElement>('td:nth-child(6)')?.innerText;
-    const punch = raw && parsePortalDateTime(raw);
-    if (punch && punch.isSame(month, 'month')) {
-      (byDate[punch.format('YYYY-MM-DD')] ??= []).push(punch);
+    try {
+      const raw = row.querySelector<HTMLElement>('td:nth-child(6)')?.innerText;
+      const punch = raw && parsePortalDateTime(raw);
+      if (punch && punch.isSame(month, 'month')) {
+        (byDate[punch.format('YYYY-MM-DD')] ??= []).push(punch);
+      }
+    } catch {
+      // Skip malformed rows while retaining the rest of the day's records.
     }
   });
 

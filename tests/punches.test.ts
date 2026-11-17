@@ -1,6 +1,7 @@
 import dayjs from 'dayjs';
 import { computeWeekData } from '../src/lib/calc';
-import { applyManualPunches, EMPTY_SNAPSHOT, getPunchTimes, mergePortalSnapshot, validPunchTimes } from '../src/lib/punches';
+import { applyManualPunches, EMPTY_SNAPSHOT, getPunchTimes, mergePortalSnapshot } from '../src/lib/punches';
+import { validPunchTimes } from '../src/lib/time-utils';
 import type { Snapshot } from '../src/types';
 
 const wednesday = '2026-10-21';
@@ -94,4 +95,43 @@ it.each(['sessions', 'span'] as const)('keeps an exit-only past day out of autom
   expect(result.data.weekTargetH).toBe(45);
   expect(effective.firstRecordISO).toBeNull();
   expect(effective.dailyTotalsSessions[wednesday]).toBeUndefined();
+});
+
+it('accepts corrected portal times and zero totals for a returned day', () => {
+  const original: Snapshot = {
+    ...snapshot,
+    punchesByDate: { [wednesday]: {
+      entryISO: stamp(wednesday, '09:00'), lastISO: stamp(wednesday, '18:00'),
+      open: false, completedMinutes: 540,
+    } },
+    dailyTotalsSessions: { [wednesday]: 540 },
+    dailyTotalsSpan: { [wednesday]: 540 },
+  };
+  const corrected = mergePortalSnapshot(original, {
+    ...snapshot,
+    punchesByDate: { [wednesday]: {
+      entryISO: stamp(wednesday, '10:00'), lastISO: stamp(wednesday, '17:00'),
+      open: false, completedMinutes: 420,
+    } },
+    dailyTotalsSessions: { [wednesday]: 420 },
+    dailyTotalsSpan: { [wednesday]: 420 },
+  });
+  expect(getPunchTimes(corrected, wednesday)).toEqual({ entry: '10:00', exit: '17:00' });
+  expect(corrected.dailyTotalsSessions[wednesday]).toBe(420);
+  const cleared = mergePortalSnapshot(corrected, {
+    ...snapshot, punchesByDate: {},
+    dailyTotalsSessions: { [wednesday]: 0 }, dailyTotalsSpan: { [wednesday]: 0 },
+  });
+  expect(cleared.dailyTotalsSessions[wednesday]).toBe(0);
+});
+
+it('does not count a previous-day entry as today when per-day records exist', () => {
+  const stale: Snapshot = {
+    ...snapshot, firstRecordISO: stamp(wednesday, '09:00'),
+    lastRecordISO: stamp(wednesday, '09:00'), todayHasOpenSession: true,
+  };
+  const result = computeWeekData(stale, 0, 'sessions',
+    { leave: 0, ooo: 0, autoDetected: false }, dayjs(`${thursday}T12:00`));
+  expect(result.data.firstRecord).toBeNull();
+  expect(result.data.todayWorkedMinutes).toBe(0);
 });

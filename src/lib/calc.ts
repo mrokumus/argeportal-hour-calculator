@@ -91,12 +91,9 @@ export function computeWeekData(
 
   // Today — only meaningful on the current week and when the snapshot's first
   // check-in belongs to the same calendar day we're computing for.
-  const sameDay = !!snapshot.punchesByDate || snapshot.capturedDay === today.format('YYYY-MM-DD');
-  let firstRecord: Dayjs | null =
-    isCurrentWeek && sameDay && snapshot.firstRecordISO
-      ? dayjs(snapshot.firstRecordISO)
-      : null;
-  if (firstRecord && !today.isSame(firstRecord, 'day')) firstRecord = null;
+  const candidateEntry = snapshot.firstRecordISO ? dayjs(snapshot.firstRecordISO) : null;
+  const firstRecord = isCurrentWeek && candidateEntry?.isValid() && candidateEntry.isSame(today, 'day')
+    ? candidateEntry : null;
 
   let todayWorkedMinutes = 0;
   let todayRemainingMinutesExact = dailyTargetH * 60;

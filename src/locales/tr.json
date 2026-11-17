@@ -173,5 +173,7 @@
   "dailyCapNotification": "Son portal kaydına göre günlük üst sınıra ulaştınız: {h} sa {m} dk (OOO dahil).",
   "testNotificationPreview": "Test: {message}",
   "collapse": "Daralt",
-  "expand": "Genişlet"
+  "expand": "Genişlet",
+  "missingPunchEntry": "Çıkış kaydedildi. Bu günün hesaplanması için giriş saatini de ekleyin.",
+  "portalEmptyRecords": "Portal kayıt döndürmedi. Önceden kaydedilen kayıtlar korunuyor."
 }

@@ -21,7 +21,7 @@ import { calculateRemaining, calculateTime, getMondayOfWeek, roundCheckInUp } fr
 import { setLocale, t, formatDateRange } from '../../lib/i18n';
 import { DEFAULT_SETTINGS, REFRESH_INTERVAL_MS } from '../../config';
 import { Warning } from '../../components/Warning/Warning';
-import { DailyPunchEditor } from '../../components/DailyOooEditor/DailyPunchEditor';
+import { DailyPunchEditor } from '../../components/DailyPunchEditor/DailyPunchEditor';
 import { applyManualPunches, EMPTY_SNAPSHOT, getPunchTimes } from '../../lib/punches';
 import { DailyOooEditor } from '../../components/DailyOooEditor/DailyOooEditor';
 import { getDailyOoo, getDailyCap, getWeekOoo } from '../../lib/ooo';
@@ -98,7 +98,7 @@ export function App() {
   const [leaveWeekKey, setLeaveWeekKey] = useState<string | null>(null);
   const [oooDate, setOooDate] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [portalStatus, setPortalStatus] = useState<'ok' | 'not-found' | null>(null);
+  const [portalStatus, setPortalStatus] = useState<'ok' | 'empty' | 'not-found' | null>(null);
   const [now, setNow] = useState(Date.now());
   const [devIndex, setDevIndex] = useState(0);
   const [devLabel, setDevLabel] = useState('');
@@ -177,7 +177,7 @@ export function App() {
         setDevActive(false);
         setDevNow(null);
         setDevLabel('');
-        setPortalStatus(merged.capturedAt === res.snapshot.capturedAt ? 'ok' : 'not-found');
+        setPortalStatus(merged.capturedAt === res.snapshot.capturedAt ? 'ok' : 'empty');
       } else {
         setPortalStatus('not-found');
         if (openPortalOnFailure && portalUrl) await browser.tabs.create({ url: portalUrl });
@@ -718,7 +718,7 @@ export function App() {
       const rawMinutes = isToday ? cappedTodayMin : dailyTotals[dateKey] || 0;
       const pending = !isToday && date.isBefore(today, 'day')
         && (snapshot.punchesByDate?.[dateKey]?.open
-          || (rawMinutes === 0 && (dateKey >= snapshot.capturedDay || !!manualPunches[dateKey])));
+          || (rawMinutes === 0 && ((!!snapshot.capturedDay && dateKey >= snapshot.capturedDay) || !!manualPunches[dateKey])));
       const ooo = getDailyOoo(data.leaveData, dateKey);
       return {
         label: t(definition.label),
@@ -729,7 +729,7 @@ export function App() {
         isPast: date.isBefore(today, 'day'),
         isToday,
         pending,
-        isLeave: !pending && date.isBefore(today, 'day')
+        isLeave: !!snapshot.capturedDay && !pending && date.isBefore(today, 'day')
           && date.isSame(today, 'month')
           && rawMinutes < settings.shortDayThresholdMinutes,
       };
@@ -822,6 +822,7 @@ export function App() {
       {dashboardHeader}
 
       {stale && <Warning text={t('staleWarning')} />}
+      {portalStatus === 'empty' && <Warning text={t('portalEmptyRecords')} />}
       {portalStatus === 'not-found' && !stale && <Warning text={t(snapshot.capturedAt ? 'notFoundCached' : 'notFoundEmpty')} />}
 
       <main className={styles.dashboardMain}>

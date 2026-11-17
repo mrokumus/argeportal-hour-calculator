@@ -143,3 +143,8 @@ export function roundCheckInUp(value: Dayjs): Dayjs {
   const minute = value.startOf('minute');
   return value.isSame(minute) ? minute : minute.add(1, 'minute');
 }
+
+export function validPunchTimes(entry?: string, exit?: string): boolean {
+  const clock = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
+  return (!entry || clock.test(entry)) && (!exit || clock.test(exit)) && (!entry || !exit || exit > entry);
+}

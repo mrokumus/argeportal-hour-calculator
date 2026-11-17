@@ -173,5 +173,7 @@
   "dailyCapNotification": "Based on the last portal record, you reached your daily cap: {h}h {m}m (including OOO).",
   "testNotificationPreview": "Test: {message}",
   "collapse": "Collapse",
-  "expand": "Expand"
+  "expand": "Expand",
+  "missingPunchEntry": "Check-out saved. Add a check-in to calculate this day.",
+  "portalEmptyRecords": "No records were returned by the portal. Previously saved records are retained."
 }

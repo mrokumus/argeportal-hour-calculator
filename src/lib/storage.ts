@@ -1,3 +1,4 @@
+import dayjs from 'dayjs';
 import type { AppSettings, CalcMode, LeaveData, ManualPunches, Snapshot } from '../types';
 import {
   DAILY_CAP_HOURS,
@@ -8,6 +9,7 @@ import {
   STORAGE_KEY_PORTAL_URL,
   STORAGE_KEY_SETTINGS,
   STORAGE_PREFIX,
+  STORAGE_PREFIX_MANUAL_PUNCH,
   DEFAULT_SETTINGS,
 } from '../config';
 import { mergePortalSnapshot } from './punches';
@@ -71,17 +73,20 @@ export function saveSnapshot(fresh: Snapshot): Promise<Snapshot> {
   return save;
 }
 
-const MANUAL_PUNCH_PREFIX = 'pdks_manual_punch_';
-
 export async function getManualPunches(): Promise<Record<string, ManualPunches>> {
-  const stored = await browser.storage.local.get(null);
+  const keys: string[] = [];
+  const now = dayjs();
+  for (let day = now.subtract(1, 'month').startOf('month'); !day.isAfter(now.endOf('month'), 'day'); day = day.add(1, 'day')) {
+    keys.push(STORAGE_PREFIX_MANUAL_PUNCH + day.format('YYYY-MM-DD'));
+  }
+  const stored = await browser.storage.local.get(keys);
   return Object.fromEntries(Object.entries(stored)
-    .filter(([key]) => key.startsWith(MANUAL_PUNCH_PREFIX))
-    .map(([key, value]) => [key.slice(MANUAL_PUNCH_PREFIX.length), value as ManualPunches]));
+    .filter(([key]) => key.startsWith(STORAGE_PREFIX_MANUAL_PUNCH))
+    .map(([key, value]) => [key.slice(STORAGE_PREFIX_MANUAL_PUNCH.length), value as ManualPunches]));
 }
 
 export async function saveManualPunches(date: string, punches: ManualPunches): Promise<void> {
-  const key = MANUAL_PUNCH_PREFIX + date;
+  const key = STORAGE_PREFIX_MANUAL_PUNCH + date;
   if (punches.entry || punches.exit) await browser.storage.local.set({ [key]: punches });
   else await browser.storage.local.remove(key);
 }

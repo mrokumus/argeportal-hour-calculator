@@ -1,4 +1,5 @@
 import dayjs from 'dayjs';
+import { validPunchTimes } from './time-utils';
 import type { DayPunches, ManualPunches, Snapshot } from '../types';
 
 export const EMPTY_SNAPSHOT: Snapshot = {
@@ -33,14 +34,10 @@ export function mergePortalSnapshot(previous: Snapshot | null, fresh: Snapshot):
   const dailyTotalsSessions = { ...previous?.dailyTotalsSessions };
   const dailyTotalsSpan = { ...previous?.dailyTotalsSpan };
   for (const date of dates) {
-    const known = punchesByDate[date];
     const incoming = freshDays[date];
-    // A truncated table can omit punches from either end of a day.
-    if (known && incoming && (incoming.entryISO > known.entryISO || incoming.lastISO < known.lastISO
-      || (!known.open && incoming.open && incoming.lastISO === known.lastISO))) continue;
     if (incoming) punchesByDate[date] = incoming;
     const freshSessions = fresh.dailyTotalsSessions[date];
-    if (freshSessions !== undefined && (freshSessions > 0 || dailyTotalsSessions[date] === undefined)) {
+    if (freshSessions !== undefined) {
       dailyTotalsSessions[date] = freshSessions;
     }
     if (fresh.dailyTotalsSpan[date] !== undefined) dailyTotalsSpan[date] = fresh.dailyTotalsSpan[date];
@@ -62,11 +59,6 @@ export function getPunchTimes(snapshot: Snapshot, date: string): ManualPunches {
     entry: dayjs(day.entryISO).format('HH:mm'),
     exit: day.open ? undefined : dayjs(day.lastISO).format('HH:mm'),
   } : {};
-}
-
-export function validPunchTimes(entry?: string, exit?: string): boolean {
-  const clock = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
-  return (!entry || clock.test(entry)) && (!exit || clock.test(exit)) && (!entry || !exit || exit > entry);
 }
 
 export function applyManualPunches(snapshot: Snapshot, manual: Record<string, ManualPunches>, date: string): Snapshot {
