@@ -19,7 +19,7 @@ export function getDueWorkNotifications(
   snapshot: Snapshot | null, settings: AppSettings, mode: CalcMode,
   leave: LeaveData, state: NotificationState | null, now: Dayjs = dayjs(),
 ): WorkNotification[] {
-  if (!snapshot || snapshot.capturedDay !== now.format('YYYY-MM-DD') || snapshot.todayHasOpenSession !== true
+  if (!snapshot || (!snapshot.punchesByDate && snapshot.capturedDay !== now.format('YYYY-MM-DD')) || snapshot.todayHasOpenSession !== true
     || !settings.workdays.includes(now.day())) return [];
   const { data } = computeWeekData(snapshot, 0, mode, leave, now, settings.dailyTargetMinutes / 60, settings);
   if (!data.firstRecord) return [];

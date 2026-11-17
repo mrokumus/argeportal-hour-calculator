@@ -3,8 +3,9 @@ import {
   WORK_NOTIFICATION_ALARM, WORK_NOTIFICATION_INTERVAL_MINUTES,
   STORAGE_KEY_NOTIFICATION_STATE, STORAGE_KEY_SETTINGS, STORAGE_KEY_CALC_MODE, STORAGE_KEY_NOTIFICATION_INTENTS,
 } from '../config';
-import { getSettings, getSnapshot, getCalcMode, getLeaveData, saveSettings } from '../lib/storage';
+import { getSettings, getSnapshot, getCalcMode, getLeaveData, getManualPunches, saveSettings } from '../lib/storage';
 import { getDailyCap } from '../lib/ooo';
+import { applyManualPunches, EMPTY_SNAPSHOT } from '../lib/punches';
 import { getMondayOfWeek } from '../lib/time-utils';
 import { getDueWorkNotifications, type NotificationState } from '../lib/work-notifications';
 import { resolveNotificationIntents, type NotificationIntent, type NotificationPreferenceKey } from '../lib/notification-preferences';
@@ -65,13 +66,14 @@ export default defineBackground(() => {
   async function check() {
     const now = dayjs();
     const weekKey = getMondayOfWeek(0, now.toDate()).toISOString().slice(0, 10);
-    const [settings, snapshot, mode, leave, stored] = await Promise.all([
+    const [settings, snapshot, mode, leave, stored, manual] = await Promise.all([
       getSettings(), getSnapshot(), getCalcMode(), getLeaveData(weekKey),
-      browser.storage.local.get(STORAGE_KEY_NOTIFICATION_STATE),
+      browser.storage.local.get(STORAGE_KEY_NOTIFICATION_STATE), getManualPunches(),
     ]);
     if (!await hasPermission()) return;
     const state = stored[STORAGE_KEY_NOTIFICATION_STATE] as NotificationState | undefined;
-    const due = getDueWorkNotifications(snapshot, settings, mode, leave, state ?? null, now);
+    const effective = applyManualPunches(snapshot ?? EMPTY_SNAPSHOT, manual, now.format('YYYY-MM-DD'));
+    const due = getDueWorkNotifications(effective, settings, mode, leave, state ?? null, now);
     if (!due.length) return;
     setLocale(settings.locale);
     // After sleep/late enabling, one message for the highest crossed threshold is enough.

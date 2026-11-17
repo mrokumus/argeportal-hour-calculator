@@ -40,6 +40,7 @@ export function computeWeekData(
   const monthStart = today.startOf('month');
   const monthEnd = today.endOf('month');
 
+  const captured = dayjs(snapshot.capturedDay);
   const leaveData: LeaveData = { ...leaveDataIn };
   let leaveDataChanged = false;
 
@@ -64,7 +65,10 @@ export function computeWeekData(
       if (c.isBefore(monthStart, 'day')) continue;
       if ((settings?.workdays ?? [1, 2, 3, 4, 5]).includes(c.day()) && c.isBefore(today, 'day')) {
         const totalMins = dailyTotals[c.format('YYYY-MM-DD')] || 0;
-        if (totalMins / 60 < shortDayThresholdHours) autoLeave++;
+        const dateKey = c.format('YYYY-MM-DD');
+        const open = snapshot.punchesByDate?.[dateKey]?.open;
+        if (totalMins / 60 >= shortDayThresholdHours) continue;
+        if (!open && (Object.hasOwn(dailyTotals, dateKey) || c.isBefore(captured, 'day'))) autoLeave++;
       }
     }
     if (autoLeave !== leaveData.leave) {
@@ -86,7 +90,7 @@ export function computeWeekData(
 
   // Today — only meaningful on the current week and when the snapshot's first
   // check-in belongs to the same calendar day we're computing for.
-  const sameDay = snapshot.capturedDay === today.format('YYYY-MM-DD');
+  const sameDay = !!snapshot.punchesByDate || snapshot.capturedDay === today.format('YYYY-MM-DD');
   let firstRecord: Dayjs | null =
     isCurrentWeek && sameDay && snapshot.firstRecordISO
       ? dayjs(snapshot.firstRecordISO)
