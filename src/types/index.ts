@@ -37,6 +37,18 @@ export interface AppSettings {
  * now − firstRecord) plus the whole month's per-day totals (so previous-week
  * navigation works without the page). Fully serializable — no dayjs objects.
  */
+export interface DayPunches {
+  entryISO: string;
+  lastISO: string;
+  open: boolean;
+  completedMinutes: number;
+}
+
+export interface ManualPunches {
+  entry?: string;
+  exit?: string;
+}
+
 export interface Snapshot {
   /** ISO timestamp of when the parse ran. */
   capturedAt: string;
@@ -50,6 +62,8 @@ export interface Snapshot {
   todayHasOpenSession?: boolean;
   /** Closed sessions from raw punches; excludes the current open session. */
   todayCompletedSessionMinutes?: number;
+  punchesByDate?: Record<string, DayPunches>;
+  incompleteManualDates?: string[];
   /** Whole-month per-day worked minutes, sessions mode (sum of session columns). */
   dailyTotalsSessions: Record<string, number>;
   /** Whole-month per-day worked minutes, span mode (last punch − first punch). */

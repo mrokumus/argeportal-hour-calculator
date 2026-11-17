@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
-import type { AppSettings, CalcMode, LeaveData, Snapshot } from '../../types';
+import type { AppSettings, CalcMode, LeaveData, ManualPunches, Snapshot } from '../../types';
 import { computeWeekData, getWeeklyStatus, getPreviousWeekSummary } from '../../lib/calc';
 import {
   getCalcMode,
   getLeaveData,
+  getManualPunches,
   getPortalUrl,
   getSettings,
   getSnapshot,
   saveCalcMode,
   saveLeaveData,
+  saveManualPunches,
   savePortalUrl,
   saveSettings,
   saveSnapshot,
@@ -19,6 +21,8 @@ import { calculateRemaining, calculateTime, getMondayOfWeek, roundCheckInUp } fr
 import { setLocale, t, formatDateRange } from '../../lib/i18n';
 import { DEFAULT_SETTINGS, REFRESH_INTERVAL_MS } from '../../config';
 import { Warning } from '../../components/Warning/Warning';
+import { DailyPunchEditor } from '../../components/DailyPunchEditor/DailyPunchEditor';
+import { applyManualPunches, EMPTY_SNAPSHOT, getPunchTimes } from '../../lib/punches';
 import { DailyOooEditor } from '../../components/DailyOooEditor/DailyOooEditor';
 import { getDailyOoo, getDailyCap, getWeekOoo } from '../../lib/ooo';
 import { LeaveInputs } from '../../components/LeaveInputs/LeaveInputs';
@@ -81,7 +85,8 @@ function formatCompactDuration(totalMinutes: number): string {
 
 export function App() {
   const [booted, setBooted] = useState(false);
-  const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
+  const [portalSnapshot, setSnapshot] = useState<Snapshot | null>(null);
+  const [manualPunches, setManualPunches] = useState<Record<string, ManualPunches>>({});
   const [calcMode, setCalcMode] = useState<CalcMode>('sessions');
   const [settings, setSettings] = useState<AppSettings>(initialSettings);
   const [settingsDraft, setSettingsDraft] = useState<AppSettings>(initialSettings);
@@ -93,7 +98,7 @@ export function App() {
   const [leaveWeekKey, setLeaveWeekKey] = useState<string | null>(null);
   const [oooDate, setOooDate] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [portalStatus, setPortalStatus] = useState<'ok' | 'not-found' | null>(null);
+  const [portalStatus, setPortalStatus] = useState<'ok' | 'empty' | 'not-found' | null>(null);
   const [now, setNow] = useState(Date.now());
   const [devIndex, setDevIndex] = useState(0);
   const [devLabel, setDevLabel] = useState('');
@@ -164,15 +169,15 @@ export function App() {
     try {
       const res = await requestParse();
       if (res.ok) {
-        await saveSnapshot(res.snapshot);
+        const merged = await saveSnapshot(res.snapshot);
         const storedLeave = await getLeaveData(weekKey);
-        setSnapshot(res.snapshot);
+        setSnapshot(merged);
         setLeaveData(storedLeave);
         setLeaveWeekKey(weekKey);
         setDevActive(false);
         setDevNow(null);
         setDevLabel('');
-        setPortalStatus('ok');
+        setPortalStatus(merged.capturedAt === res.snapshot.capturedAt ? 'ok' : 'empty');
       } else {
         setPortalStatus('not-found');
         if (openPortalOnFailure && portalUrl) await browser.tabs.create({ url: portalUrl });
@@ -189,10 +194,11 @@ export function App() {
 
   useEffect(() => {
     (async () => {
-      const [mode, snap, storedPortalUrl, storedSettings] = await Promise.all([
-        getCalcMode(), getSnapshot(), getPortalUrl(), getSettings(),
+      const [mode, snap, storedPortalUrl, storedSettings, manual] = await Promise.all([
+        getCalcMode(), getSnapshot(), getPortalUrl(), getSettings(), getManualPunches(),
       ]);
       setCalcMode(mode);
+      setManualPunches(manual);
       setSnapshot(snap);
       setPortalUrl(storedPortalUrl);
       setPortalUrlDraft(storedPortalUrl);
@@ -236,8 +242,13 @@ export function App() {
     return () => clearInterval(timer);
   }, []);
 
+  const dateKey = dayjs(effectiveNow).format('YYYY-MM-DD');
+  const snapshot = useMemo(() => applyManualPunches(
+    portalSnapshot ?? EMPTY_SNAPSHOT, devActive ? {} : manualPunches, dateKey,
+  ), [portalSnapshot, manualPunches, devActive, dateKey]);
+
   const result = useMemo(() => {
-    if (!snapshot || !leaveData || leaveWeekKey !== weekKey) return null;
+    if (!leaveData || leaveWeekKey !== weekKey) return null;
     return computeWeekData(
       snapshot,
       0,
@@ -378,9 +389,9 @@ export function App() {
     );
   }
 
-  const stale = snapshot ? snapshot.capturedDay !== dayjs(effectiveNow).format('YYYY-MM-DD') : false;
-  const cachedAfterFailedRefresh = portalStatus === 'not-found' && !!snapshot && !stale;
-  const updatedText = snapshot
+  const stale = !!snapshot.capturedDay && snapshot.capturedDay !== dateKey;
+  const cachedAfterFailedRefresh = portalStatus === 'not-found' && !!snapshot.capturedAt && !stale;
+  const updatedText = snapshot.capturedAt
     ? t('lastUpdated', {
         t: stale
           ? dayjs(snapshot.capturedAt).format('DD.MM HH:mm')
@@ -622,7 +633,7 @@ export function App() {
     );
   }
 
-  if (!snapshot || !result) {
+  if (!result) {
     return (
       <div className={styles.app}>
         {dashboardHeader}
@@ -705,6 +716,9 @@ export function App() {
       const isToday = date.isSame(today, 'day');
       const dateKey = date.format('YYYY-MM-DD');
       const rawMinutes = isToday ? cappedTodayMin : dailyTotals[dateKey] || 0;
+      const pending = !isToday && date.isBefore(today, 'day')
+        && (snapshot.punchesByDate?.[dateKey]?.open
+          || (rawMinutes === 0 && ((!!snapshot.capturedDay && dateKey >= snapshot.capturedDay) || !!manualPunches[dateKey])));
       const ooo = getDailyOoo(data.leaveData, dateKey);
       return {
         label: t(definition.label),
@@ -714,7 +728,8 @@ export function App() {
         minutes: Math.min(rawMinutes, getDailyCap(settings.dailyCapMinutes, data.leaveData, dateKey)),
         isPast: date.isBefore(today, 'day'),
         isToday,
-        isLeave: date.isBefore(today, 'day')
+        pending,
+        isLeave: !!snapshot.capturedDay && !pending && date.isBefore(today, 'day')
           && date.isSame(today, 'month')
           && rawMinutes < settings.shortDayThresholdMinutes,
       };
@@ -807,7 +822,8 @@ export function App() {
       {dashboardHeader}
 
       {stale && <Warning text={t('staleWarning')} />}
-      {portalStatus === 'not-found' && !stale && <Warning text={t('notFoundCached')} />}
+      {portalStatus === 'empty' && <Warning text={t('portalEmptyRecords')} />}
+      {portalStatus === 'not-found' && !stale && <Warning text={t(snapshot.capturedAt ? 'notFoundCached' : 'notFoundEmpty')} />}
 
       <main className={styles.dashboardMain}>
         <section className={styles.dashboardCard}>
@@ -853,14 +869,27 @@ export function App() {
                 onClick={() => setOooDate(oooDate === day.date ? null : day.date)}
               >
                 {day.label}
-                <b>{day.isLeave ? t('leaveBarLabel') : `${Math.floor(day.minutes / 60)}:${pad(day.minutes % 60)}`}</b>
+                <b>{day.pending ? t('pendingPunch') : day.isLeave ? t('leaveBarLabel') : `${Math.floor(day.minutes / 60)}:${pad(day.minutes % 60)}`}</b>
                 {day.ooo > 0 && <small>OOO {minutesToTime(day.ooo)}</small>}
               </button>
             ))}
           </div>
           {oooDate && (oooDate === today.format('YYYY-MM-DD') || weekDays.some(day => day.date === oooDate && day.editable)) && (
-            <DailyOooEditor key={oooDate} date={oooDate} data={data.leaveData} baseCap={settings.dailyCapMinutes}
-              disabled={refreshing} onChange={handleLeaveChange} onClose={() => setOooDate(null)} />
+            <div key={oooDate}>
+              <DailyOooEditor date={oooDate} data={data.leaveData} baseCap={settings.dailyCapMinutes}
+                disabled={refreshing} onChange={handleLeaveChange} onClose={() => setOooDate(null)} />
+              <DailyPunchEditor portal={getPunchTimes(portalSnapshot ?? EMPTY_SNAPSHOT, oooDate)}
+                manual={devActive ? undefined : manualPunches[oooDate]} disabled={refreshing || devActive}
+                onSave={async punches => {
+                  await saveManualPunches(oooDate, punches);
+                  setManualPunches(current => {
+                    const next = { ...current };
+                    if (punches.entry || punches.exit) next[oooDate] = punches;
+                    else delete next[oooDate];
+                    return next;
+                  });
+                }} />
+            </div>
           )}
           {isCurrentWeek && weeklyStatus && (
             <div className={`${styles.statusTag} ${styles.todayStatus}`}>

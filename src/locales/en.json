@@ -143,7 +143,15 @@
   "lastWeek": "Last week",
   "previousWeekUnavailable": "Data unavailable",
   "weekIncomplete": "Weekly target incomplete",
-  "editOooForDay": "Edit OOO for {date}",
+  "editOooForDay": "Edit OOO and punches for {date}",
+  "dailyPunches": "Check-in and check-out",
+  "punchEntry": "Check-in",
+  "punchExit": "Check-out",
+  "resetPunchTimes": "Use portal times",
+  "punchTimesHint": "A blank field uses the portal time when available.",
+  "invalidPunchTimes": "Check-out must be later than check-in on the same day.",
+  "punchSaveFailed": "Could not save the times. Try again.",
+  "pendingPunch": "Pending",
   "dailyOooLimit": "Daily limit with OOO: {h} (hours:minutes)",
   "invalidDailyOoo": "Enter a duration from 0:00 to 24:00.",
   "unassignedOoo": "Previous OOO without a date: {h}",
@@ -165,5 +173,7 @@
   "dailyCapNotification": "Based on the last portal record, you reached your daily cap: {h}h {m}m (including OOO).",
   "testNotificationPreview": "Test: {message}",
   "collapse": "Collapse",
-  "expand": "Expand"
+  "expand": "Expand",
+  "missingPunchEntry": "Check-out saved. Add a check-in to calculate this day.",
+  "portalEmptyRecords": "No records were returned by the portal. Previously saved records are retained."
 }

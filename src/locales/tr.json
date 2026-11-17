@@ -143,7 +143,15 @@
   "lastWeek": "Geçen hafta",
   "previousWeekUnavailable": "Veri alınamadı",
   "weekIncomplete": "Haftalık hedef tamamlanmadı",
-  "editOooForDay": "{date} için OOO düzenle",
+  "editOooForDay": "{date} için OOO ve giriş-çıkışı düzenle",
+  "dailyPunches": "Giriş ve çıkış saatleri",
+  "punchEntry": "Giriş",
+  "punchExit": "Çıkış",
+  "resetPunchTimes": "Portal saatlerini kullan",
+  "punchTimesHint": "Boş bırakılan alanda varsa portal saati kullanılır.",
+  "invalidPunchTimes": "Çıkış saati aynı gün içinde giriş saatinden sonra olmalıdır.",
+  "punchSaveFailed": "Saatler kaydedilemedi. Tekrar deneyin.",
+  "pendingPunch": "Eksik",
   "dailyOooLimit": "OOO ile günlük sınır: {h} (saat:dakika)",
   "invalidDailyOoo": "0:00 ile 24:00 arasında bir süre girin.",
   "unassignedOoo": "Önceki, günü belirtilmemiş OOO: {h}",
@@ -165,5 +173,7 @@
   "dailyCapNotification": "Son portal kaydına göre günlük üst sınıra ulaştınız: {h} sa {m} dk (OOO dahil).",
   "testNotificationPreview": "Test: {message}",
   "collapse": "Daralt",
-  "expand": "Genişlet"
+  "expand": "Genişlet",
+  "missingPunchEntry": "Çıkış kaydedildi. Bu günün hesaplanması için giriş saatini de ekleyin.",
+  "portalEmptyRecords": "Portal kayıt döndürmedi. Önceden kaydedilen kayıtlar korunuyor."
 }

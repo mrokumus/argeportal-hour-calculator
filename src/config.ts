@@ -70,10 +70,12 @@ export const DEFAULT_SETTINGS = {
 } as const;
 
 /** User feedback form opened from the popup footer. */
-export const FEEDBACK_URL = 'https://forms.gle/W8Hv72vJmTk2uNFa6';
+export const FEEDBACK_URL = 'https://www.jotform.com/263163386110047';
 
 export const WORK_NOTIFICATION_ALARM = 'pdks-work-notifications';
 export const STORAGE_KEY_NOTIFICATION_STATE = `${STORAGE_PREFIX}notification_state`;
 export const WORK_NOTIFICATION_INTERVAL_MINUTES = 1;
 
 export const STORAGE_KEY_NOTIFICATION_INTENTS = `${STORAGE_PREFIX}notification_intents`;
+
+export const STORAGE_PREFIX_MANUAL_PUNCH = `${STORAGE_PREFIX}manual_punch_`;

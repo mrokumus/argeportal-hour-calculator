@@ -1,9 +1,7 @@
 import dayjs from 'dayjs';
-import type { ParseResult, Snapshot } from '../types';
+import type { DayPunches, ParseResult, Snapshot } from '../types';
 import { calculateSessionTotalsFromPunches, mergeSessionTotals, timeNormalize, roundCheckInUp } from './time-utils';
 import {
-  findEarliestPunch,
-  findLatestPunch,
   parseDurationMinutes,
   parsePortalDateTime,
 } from './parser-utils';
@@ -65,14 +63,13 @@ async function ensureCurrentMonthSelected(): Promise<void> {
   const currentYearShort = String(new Date().getFullYear()).slice(-2);
 
   const selected = monthSelect.options[monthSelect.selectedIndex];
-  if (selected?.textContent?.includes(currentMonthText)) return;
+  const matchesPeriod = (option: HTMLOptionElement | undefined) =>
+    option?.textContent?.includes(currentMonthText) && option.textContent.includes(currentYearShort);
+  if (matchesPeriod(selected)) return;
 
   for (let i = 0; i < monthSelect.options.length; i++) {
     const opt = monthSelect.options[i];
-    if (
-      opt.textContent?.includes(currentMonthText) &&
-      opt.textContent?.includes(currentYearShort)
-    ) {
+    if (matchesPeriod(opt)) {
       monthSelect.selectedIndex = i;
       monthSelect.dispatchEvent(new Event('change', { bubbles: true }));
       await sleep(PERIOD_CHANGE_DELAY_MS);
@@ -108,96 +105,43 @@ function scrapeSessions(rows: NodeListOf<Element>): Record<string, number> {
   return map;
 }
 
-/** Completed session totals reconstructed from the raw punch table. */
-function scrapeSessionsFromPunches(rows: NodeListOf<Element>): Record<string, number> {
-  const punchesByDay: Record<string, number[]> = {};
-  rows.forEach((row) => {
+function scrapePunches(rows: NodeListOf<Element>, month: dayjs.Dayjs) {
+  const byDate: Record<string, dayjs.Dayjs[]> = {};
+  rows.forEach(row => {
     try {
-      const raw = (row.querySelector('td:nth-child(6)') as HTMLElement | null)?.innerText;
-      if (!raw) return;
-      const punch = parsePortalDateTime(raw);
-      if (!punch) return;
-
-      const date = punch.format('YYYY-MM-DD');
-      const mins = punch.hour() * 60 + punch.minute();
-      (punchesByDay[date] ??= []).push(mins);
-    } catch {
-      // skip malformed rows
-    }
-  });
-  return calculateSessionTotalsFromPunches(punchesByDay);
-}
-
-/**
- * Whole-month per-day worked minutes from the raw punch table (span mode):
- * last punch − first punch. Bounded to the selected (current) month so stray
- * rows from adjacent months don't leak in.
- */
-function scrapeSpan(
-  rows: NodeListOf<Element>,
-  monthStart: dayjs.Dayjs,
-  monthEnd: dayjs.Dayjs,
-): Record<string, number> {
-  const dayData: Record<string, { first: number; last: number }> = {};
-  rows.forEach((row) => {
-    try {
-      const raw = (row.querySelector('td:nth-child(6)') as HTMLElement | null)?.innerText;
-      if (!raw) return;
-      const punch = parsePortalDateTime(raw);
-      if (!punch) return;
-      if (punch.isBefore(monthStart, 'day') || punch.isAfter(monthEnd, 'day')) return;
-
-      const dateStr = punch.format('YYYY-MM-DD');
-      const mins = punch.hour() * 60 + punch.minute();
-      if (!dayData[dateStr]) {
-        dayData[dateStr] = { first: mins, last: mins };
-      } else {
-        dayData[dateStr].first = Math.min(dayData[dateStr].first, mins);
-        dayData[dateStr].last = Math.max(dayData[dateStr].last, mins);
+      const raw = row.querySelector<HTMLElement>('td:nth-child(6)')?.innerText;
+      const punch = raw && parsePortalDateTime(raw);
+      if (punch && punch.isSame(month, 'month')) {
+        (byDate[punch.format('YYYY-MM-DD')] ??= []).push(punch);
       }
     } catch {
-      // skip malformed rows
+      // Skip malformed rows while retaining the rest of the day's records.
     }
   });
-  const result: Record<string, number> = {};
-  for (const [date, { first, last }] of Object.entries(dayData)) {
-    result[date] = Math.max(0, last - first);
+
+  const punchesByDate: Record<string, DayPunches> = {};
+  const spans: Record<string, number> = {};
+  const minutesByDate: Record<string, number[]> = {};
+  for (const [date, punches] of Object.entries(byDate)) {
+    punches.sort((a, b) => a.valueOf() - b.valueOf());
+    minutesByDate[date] = punches.map(punch => punch.hour() * 60 + punch.minute());
+    const minutes = minutesByDate[date];
+    spans[date] = minutes[minutes.length - 1] - minutes[0];
   }
-  return result;
-}
 
-function collectPunchStrings(rows: NodeListOf<Element>): string[] {
-  const punches: string[] = [];
-  rows.forEach((row) => {
-    const raw = (row.querySelector('td:nth-child(6)') as HTMLElement | null)?.innerText;
-    if (raw) punches.push(raw);
-  });
-  return punches;
-}
+  const sessions = calculateSessionTotalsFromPunches(minutesByDate);
+  for (const [date, punches] of Object.entries(byDate)) {
+    const open = punches.length % 2 === 1;
+    const last = punches[punches.length - 1];
+    punchesByDate[date] = {
+      entryISO: roundCheckInUp(punches[0]).toISOString(),
+      lastISO: (open ? roundCheckInUp(last) : last).toISOString(),
+      open,
+      completedMinutes: sessions[date] ?? 0,
+    };
+  }
 
-/** First check-in of today, independent of portal row ordering. */
-function scrapeFirstRecord(rows: NodeListOf<Element>, today: dayjs.Dayjs): string | null {
-  const first = findEarliestPunch(collectPunchStrings(rows), today);
-  if (!first) return null;
-  return roundCheckInUp(first).toISOString();
-}
-
-function scrapeLastRecord(rows: NodeListOf<Element>, today: dayjs.Dayjs): string | null {
-  const last = findLatestPunch(collectPunchStrings(rows), today);
-  if (!last) return null;
-  return (hasOpenSession(rows, today) ? roundCheckInUp(last) : last).toISOString();
-}
-
-/** Punches alternate check-in/check-out; an odd count means work is still active. */
-function hasOpenSession(rows: NodeListOf<Element>, today: dayjs.Dayjs): boolean {
-  let todayPunches = 0;
-  rows.forEach((row) => {
-    const raw = (row.querySelector('td:nth-child(6)') as HTMLElement | null)?.innerText;
-    if (!raw) return;
-    const punch = parsePortalDateTime(raw);
-    if (punch && today.isSame(punch, 'day')) todayPunches++;
-  });
-  return todayPunches % 2 === 1;
+  return { punchesByDate, sessions, spans };
 }
 
 /**
@@ -221,21 +165,23 @@ export async function parseSnapshot(): Promise<ParseResult> {
     }
 
     const now = dayjs();
-    const monthStart = now.startOf('month');
-    const monthEnd = now.endOf('month');
-    const punchRows = tableOne.querySelectorAll('tbody > tr');
+    const { punchesByDate, sessions, spans } = scrapePunches(tableOne.querySelectorAll('tbody > tr'), now);
     const summarySessions = scrapeSessions(tableTwo.querySelectorAll('tbody > tr'));
-    const rawSessions = scrapeSessionsFromPunches(punchRows);
+    for (const date of Object.keys(summarySessions)) {
+      if (!dayjs(date).isSame(now, 'month')) delete summarySessions[date];
+    }
+    const today = punchesByDate[now.format('YYYY-MM-DD')];
 
     const snapshot: Snapshot = {
       capturedAt: now.toISOString(),
       capturedDay: now.format('YYYY-MM-DD'),
-      firstRecordISO: scrapeFirstRecord(punchRows, now),
-      lastRecordISO: scrapeLastRecord(punchRows, now),
-      todayHasOpenSession: hasOpenSession(punchRows, now),
-      todayCompletedSessionMinutes: rawSessions[now.format('YYYY-MM-DD')] ?? 0,
-      dailyTotalsSessions: mergeSessionTotals(summarySessions, rawSessions),
-      dailyTotalsSpan: scrapeSpan(punchRows, monthStart, monthEnd),
+      firstRecordISO: today?.entryISO ?? null,
+      lastRecordISO: today?.lastISO ?? null,
+      todayHasOpenSession: today?.open ?? false,
+      todayCompletedSessionMinutes: today?.completedMinutes ?? 0,
+      punchesByDate,
+      dailyTotalsSessions: mergeSessionTotals(summarySessions, sessions),
+      dailyTotalsSpan: spans,
     };
 
     return { ok: true, snapshot };
