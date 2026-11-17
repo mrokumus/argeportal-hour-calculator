@@ -67,6 +67,7 @@ export function computeWeekData(
         const totalMins = dailyTotals[c.format('YYYY-MM-DD')] || 0;
         const dateKey = c.format('YYYY-MM-DD');
         const open = snapshot.punchesByDate?.[dateKey]?.open;
+        if (snapshot.incompleteManualDates?.includes(dateKey)) continue;
         if (totalMins / 60 >= shortDayThresholdHours) continue;
         if (!open && (Object.hasOwn(dailyTotals, dateKey) || c.isBefore(captured, 'day'))) autoLeave++;
       }

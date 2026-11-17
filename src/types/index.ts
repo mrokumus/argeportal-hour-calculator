@@ -63,6 +63,7 @@ export interface Snapshot {
   /** Closed sessions from raw punches; excludes the current open session. */
   todayCompletedSessionMinutes?: number;
   punchesByDate?: Record<string, DayPunches>;
+  incompleteManualDates?: string[];
   /** Whole-month per-day worked minutes, sessions mode (sum of session columns). */
   dailyTotalsSessions: Record<string, number>;
   /** Whole-month per-day worked minutes, span mode (last punch − first punch). */

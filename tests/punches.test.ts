@@ -59,3 +59,39 @@ it('retains an exit entered first so a later entry can complete the day', () => 
   expect(applyManualPunches(EMPTY_SNAPSHOT, { [wednesday]: { entry: '09:00', exit: '18:00' } }, wednesday).dailyTotalsSessions[wednesday]).toBe(540);
   expect(validPunchTimes('18:00', '09:00')).toBe(false);
 });
+
+it.each([['10:00', 180], ['08:00', 300], ['13:30', 30]])(
+  'adjusts completed and open sessions after overriding entry to %s', (entry, expected) => {
+    const portal: Snapshot = {
+      ...snapshot,
+      punchesByDate: {
+        [wednesday]: {
+          entryISO: stamp(wednesday, '09:00'), lastISO: stamp(wednesday, '13:00'),
+          open: true, completedMinutes: 180,
+        },
+      },
+      dailyTotalsSessions: { [wednesday]: 180 },
+      dailyTotalsSpan: { [wednesday]: 240 },
+    };
+    const effective = applyManualPunches(portal, { [wednesday]: { entry } }, wednesday);
+    const result = computeWeekData(effective, 0, 'sessions',
+      { leave: 0, ooo: 0, autoDetected: false }, dayjs(`${wednesday}T14:00`));
+    expect(result.data.todayWorkedMinutes).toBe(expected);
+    expect(portal.punchesByDate![wednesday].completedMinutes).toBe(180);
+  },
+);
+
+it.each(['sessions', 'span'] as const)('keeps an exit-only past day out of automatic leave in %s mode', mode => {
+  const portal: Snapshot = {
+    ...EMPTY_SNAPSHOT, capturedDay: thursday, capturedAt: stamp(thursday, '12:00'),
+    dailyTotalsSessions: { [monday]: 540, '2026-10-20': 540 },
+    dailyTotalsSpan: { [monday]: 540, '2026-10-20': 540 },
+  };
+  const effective = applyManualPunches(portal, { [wednesday]: { exit: '18:00' } }, thursday);
+  const result = computeWeekData(effective, 0, mode,
+    { leave: 0, ooo: 0, autoDetected: true }, dayjs(`${thursday}T12:00`));
+  expect(result.data.leaveData.leave).toBe(0);
+  expect(result.data.weekTargetH).toBe(45);
+  expect(effective.firstRecordISO).toBeNull();
+  expect(effective.dailyTotalsSessions[wednesday]).toBeUndefined();
+});

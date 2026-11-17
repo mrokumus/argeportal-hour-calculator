@@ -75,13 +75,17 @@ export function applyManualPunches(snapshot: Snapshot, manual: Record<string, Ma
   const sessions = { ...snapshot.dailyTotalsSessions };
   const spans = { ...snapshot.dailyTotalsSpan };
   let today = days[date];
+  const incompleteManualDates: string[] = [];
 
   for (const [key, override] of Object.entries(manual)) {
     const portal = days[key];
     const times = getPunchTimes(snapshot, key);
     const entry = override.entry ?? times.entry;
     const exit = override.exit ?? times.exit;
-    if (!validPunchTimes(entry, exit) || !entry) continue;
+    if (!validPunchTimes(entry, exit) || !entry) {
+      if (override.entry || override.exit) incompleteManualDates.push(key);
+      continue;
+    }
 
     const entryISO = override.entry ? dayjs(`${key}T${entry}`).toISOString() : portal!.entryISO;
     const exitISO = exit ? (override.exit ? dayjs(`${key}T${exit}`).toISOString() : portal!.lastISO) : null;
@@ -89,7 +93,11 @@ export function applyManualPunches(snapshot: Snapshot, manual: Record<string, Ma
     const portalSpan = snapshot.dailyTotalsSpan[key];
     const portalSessions = portal?.open ? portal.completedMinutes : sessions[key];
     const breaks = portalSpan != null && portalSessions != null ? Math.max(0, portalSpan - portalSessions) : 0;
-    const completed = exitISO ? Math.max(0, span - breaks) : portal?.completedMinutes ?? 0;
+    const entryAdjustment = portal ? dayjs(entryISO).diff(dayjs(portal.entryISO), 'minute') : 0;
+    const openCompleted = portal?.open && portal.lastISO > portal.entryISO
+      ? Math.max(0, portal.completedMinutes - entryAdjustment)
+      : 0;
+    const completed = exitISO ? Math.max(0, span - breaks) : openCompleted;
 
     if (exitISO) {
       spans[key] = span;
@@ -107,6 +115,7 @@ export function applyManualPunches(snapshot: Snapshot, manual: Record<string, Ma
   return {
     ...snapshot,
     punchesByDate: days,
+    incompleteManualDates,
     dailyTotalsSessions: sessions,
     dailyTotalsSpan: spans,
     firstRecordISO: today?.entryISO ?? null,
