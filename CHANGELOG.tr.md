@@ -2,6 +2,25 @@
 
 PDKS Time Calculator'daki önemli değişiklikler burada listelenir. Bu dosya [CHANGELOG.md](CHANGELOG.md) dosyasının Türkçe karşılığıdır; her sürümde ikisi birlikte güncellenir.
 
+## [1.7.1] - 2026-11-18
+
+### Eklenenler
+
+- OOO düzenleyicisinin altına günlük manuel giriş ve çıkış saatleri ile portal saatlerine geri dönme seçeneği eklendi.
+- Portal yenilemesi kayıt döndürmediğinde önceden okunan günlük kayıtlar korunur. Sonradan öğrenilen çıkışlar açık günleri tamamlar.
+
+### Düzeltmeler
+
+- Manuel giriş düzeltmeleri tamamlanmış oturum sürelerine ve bildirim hesaplamalarına yansır.
+- Eksik manuel kayıtlar otomatik izin hesabına katılmaz ve giriş saati beklendiği açıklanır.
+- Portalda düzeltilen saatler önbelleği günceller ve bugünün hesabında giriş tarihi doğrulanır.
+- Boş portal yanıtı için ayrı mesaj gösterilir, bozuk giriş-çıkış satırları tek tek atlanır.
+
+### Değişiklikler
+
+- Geri bildirim bağlantısı yeni Jotform formuna yönlendirilir.
+- Portal önbelleği mevcut ve önceki ayı kapsar.
+
 ## [1.7.0] - 2026-10-20
 
 ### Eklenenler

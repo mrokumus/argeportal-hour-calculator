@@ -2,6 +2,25 @@
 
 All notable changes to PDKS Time Calculator are documented here. Versions follow the `package.json` version and the matching `v`-prefixed GitHub Release tag.
 
+## [1.7.1] - 2026-11-18
+
+### Added
+
+- Manual daily check-in and check-out times below the OOO editor, with an option to restore portal times.
+- Persistent daily portal records that retain previously read entries when a refresh returns no records. Later check-outs complete previously open days.
+
+### Fixed
+
+- Manual entry corrections update completed-session totals and notification calculations.
+- Incomplete manual records are excluded from automatic leave detection and show when a check-in is still needed.
+- Corrected portal times replace cached times, and today's calculations validate the entry date.
+- Empty portal responses have a dedicated message, and malformed punch rows are skipped individually.
+
+### Changed
+
+- Feedback now opens the new Jotform form.
+- Portal cache retention covers the current and previous month.
+
 ## [1.7.0] - 2026-10-20
 
 ### Added
