@@ -1,7 +1,6 @@
 import dayjs from 'dayjs';
 import { computeWeekData } from '../src/lib/calc';
 import { applyManualPunches, EMPTY_SNAPSHOT, getPunchTimes, mergePortalSnapshot } from '../src/lib/punches';
-import { validPunchTimes } from '../src/lib/time-utils';
 import type { Snapshot } from '../src/types';
 
 const wednesday = '2026-10-21';
@@ -58,7 +57,6 @@ it('counts a manual entry live without a portal and leaves the previous day inco
 it('retains an exit entered first so a later entry can complete the day', () => {
   expect(applyManualPunches(EMPTY_SNAPSHOT, { [wednesday]: { exit: '18:00' } }, wednesday).dailyTotalsSessions[wednesday]).toBeUndefined();
   expect(applyManualPunches(EMPTY_SNAPSHOT, { [wednesday]: { entry: '09:00', exit: '18:00' } }, wednesday).dailyTotalsSessions[wednesday]).toBe(540);
-  expect(validPunchTimes('18:00', '09:00')).toBe(false);
 });
 
 it.each([['10:00', 180], ['08:00', 300], ['13:30', 30]])(
@@ -134,4 +132,45 @@ it('does not count a previous-day entry as today when per-day records exist', ()
     { leave: 0, ooo: 0, autoDetected: false }, dayjs(`${thursday}T12:00`));
   expect(result.data.firstRecord).toBeNull();
   expect(result.data.todayWorkedMinutes).toBe(0);
+});
+
+describe('manual overrides on multi-session days subtract portal breaks', () => {
+  // Portal: 09:00–12:00, 13:00–18:00 → 480 worked, 540 span, 60 break.
+  const closed: Snapshot = {
+    ...snapshot,
+    punchesByDate: { [wednesday]: {
+      entryISO: stamp(wednesday, '09:00'), lastISO: stamp(wednesday, '18:00'),
+      open: false, completedMinutes: 480,
+    } },
+    dailyTotalsSessions: { [wednesday]: 480 },
+    dailyTotalsSpan: { [wednesday]: 540 },
+  };
+
+  it.each([
+    [{ exit: '17:00' }, 420, 480],
+    [{ entry: '08:00' }, 540, 600],
+    [{ entry: '08:30', exit: '17:30' }, 480, 540],
+  ])('override %o on a closed day → %i worked, %i span', (override, worked, span) => {
+    const effective = applyManualPunches(closed, { [wednesday]: override }, thursday);
+    expect(effective.dailyTotalsSessions[wednesday]).toBe(worked);
+    expect(effective.dailyTotalsSpan[wednesday]).toBe(span);
+    expect(effective.punchesByDate![wednesday].open).toBe(false);
+  });
+
+  it('closes today\'s open second session with a manual exit', () => {
+    // Portal today: 09:00–12:00 completed, 13:00 open → 180 completed, 240 span.
+    const open: Snapshot = {
+      ...snapshot,
+      punchesByDate: { [wednesday]: {
+        entryISO: stamp(wednesday, '09:00'), lastISO: stamp(wednesday, '13:00'),
+        open: true, completedMinutes: 180,
+      } },
+      dailyTotalsSessions: { [wednesday]: 180 },
+      dailyTotalsSpan: { [wednesday]: 240 },
+    };
+    const effective = applyManualPunches(open, { [wednesday]: { exit: '18:00' } }, wednesday);
+    expect(effective.todayHasOpenSession).toBe(false);
+    expect(effective.todayCompletedSessionMinutes).toBe(480);
+    expect(effective.dailyTotalsSessions[wednesday]).toBe(480);
+  });
 });

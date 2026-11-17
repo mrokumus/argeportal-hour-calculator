@@ -9,6 +9,7 @@ import {
   parseOOO,
   formatOOO,
   countValidWorkdays,
+  validPunchTimes,
 } from '../src/lib/time-utils';
 
 const d = (str: string) => new Date(str);
@@ -175,5 +176,21 @@ describe('formatOOO', () => {
   test('parseOOO and formatOOO are inverses', () => {
     const cases = ['1:30', '2:15', '0:45', '3:00', '0:05'];
     cases.forEach((s) => expect(formatOOO(parseOOO(s))).toBe(s));
+  });
+});
+
+describe('validPunchTimes', () => {
+  test.each([
+    ['09:00', '18:00', true],
+    ['09:00', undefined, true],
+    [undefined, '18:00', true],
+    [undefined, undefined, true],
+    ['18:00', '09:00', false],
+    ['09:00', '09:00', false],
+    ['9:00', '18:00', false],
+    ['09:00', '24:00', false],
+    ['09:60', '18:00', false],
+  ])('entry %s, exit %s → %s', (entry, exit, expected) => {
+    expect(validPunchTimes(entry, exit)).toBe(expected);
   });
 });
